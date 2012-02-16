@@ -1,3 +1,4 @@
+
 **Installation:
 
 Pathauto is an extension to the path module, which must be enabled.
@@ -46,3 +47,4 @@ Note that the settings page has moved so that it is more logically grouped with
 other URL alias related items under
   Administer > Site building > URL alias > Automated alias settings
 
+$Id: INSTALL.txt,v 1.6 2010/03/15 18:24:56 davereid Exp $

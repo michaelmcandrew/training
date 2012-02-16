@@ -965,7 +965,7 @@ AND civicrm_contact.is_opt_out =0";
     public function &compose($job_id, $event_queue_id, $hash, $contactId, 
                              $email, &$recipient, $test, 
                              $contactDetails, &$attachments, $isForward = false, 
-                             $fromEmail = null, $replyEmail = null ) 
+                             $fromEmail = null, $replyToEmail = null ) 
     {
         require_once 'CRM/Utils/Token.php';
         require_once 'CRM/Activity/BAO/Activity.php';
@@ -984,8 +984,8 @@ AND civicrm_contact.is_opt_out =0";
             $headers['From'] = "<{$fromEmail}>";
         } 
 
-        if ( $replyEmail && ( $fromEmail != $replyEmail ) ) {
-            $headers['Reply-To'] = "<{$replyEmail}>";
+        if ( $replyToEmail && ( $fromEmail != $replyToEmail ) ) {
+            $headers['Reply-To'] = "{$replyToEmail}";
         }
         
         if ( defined( 'CIVICRM_MAIL_SMARTY' ) &&
@@ -1239,13 +1239,10 @@ AND civicrm_contact.is_opt_out =0";
             $domain =& CRM_Core_BAO_Domain::getDomain( );
             $data = CRM_Utils_Token::getDomainTokenReplacement($token, $domain, $html);
         } else if( $type == 'mailing') {
-            require_once 'CRM/Mailing/BAO/Mailing.php';
-            $mailing = new CRM_Mailing_BAO_Mailing( );
-            $mailing->find( true );
             if ( $token == 'name' ) {
-                $data = $mailing->name ;
+                $data = $this->name ;
             } else if ( $token == 'group' ) {
-                $groups = $mailing->getGroupNames( );
+                $groups = $this->getGroupNames( );
                 $data = implode(', ', $groups);
             }         
         } else {
@@ -1280,6 +1277,7 @@ AND civicrm_contact.is_opt_out =0";
         while ($mg->fetch()) {
             $groups[] = $mg->name;
         }
+        $mg->free( );
         return $groups;
     }
     
