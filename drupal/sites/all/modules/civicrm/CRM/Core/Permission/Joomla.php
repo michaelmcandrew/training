@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -103,6 +103,20 @@ class CRM_Core_Permission_Joomla {
             return '(1)';
         }
     }
+
+    /**
+     * Given a roles array, check for access requirements
+     *
+     * @param array $array the roles to check
+     *
+     * @return boolean true if yes, else false
+     * @static
+     * @access public
+     */
+    static function checkGroupRole( $array) {
+        return false;
+    }
+
 
     /**
      * Get all the contact emails for users that have a specific permission

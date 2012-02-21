@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  --------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -183,6 +183,11 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
     
     function browseCampaign( ) 
     {
+        // ensure valid javascript (these must have a value set)
+        $this->assign ('searchParams', json_encode(null));
+        $this->assign ('campaignTypes', json_encode(null));
+        $this->assign ('campaignStatus', json_encode(null));
+
         $this->assign( 'addCampaignUrl', CRM_Utils_System::url( 'civicrm/campaign/add', 'reset=1&action=add' ) );
         $campaignCount = CRM_Campaign_BAO_Campaign::getCampaignCount( );
         //don't load find interface when no campaigns in db.
@@ -207,6 +212,7 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
         //get the campaigns.
         $campaigns = CRM_Campaign_BAO_Campaign::getCampaignSummary( $params );
         if ( !empty( $campaigns ) ) {
+            $config = CRM_Core_Config::singleton( );
             $campaignType    = CRM_Campaign_PseudoConstant::campaignType( );
             $campaignStatus  = CRM_Campaign_PseudoConstant::campaignStatus( );
             $properties      = array( 'id', 'name', 'title', 'status_id', 'description', 
@@ -251,6 +257,11 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
     
     function browseSurvey( ) 
     {
+        // ensure valid javascript - this must have a value set
+        $this->assign ('searchParams', json_encode(null));
+        $this->assign ('surveyTypes', json_encode(null));
+        $this->assign ('surveyCampaigns', json_encode(null));
+
         $this->assign( 'addSurveyUrl', CRM_Utils_System::url( 'civicrm/survey/add', 'reset=1&action=add' ) );
         
         $surveyCount = CRM_Campaign_BAO_Survey::getSurveyCount( );
@@ -302,7 +313,7 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
                 
                 $isDefault = null;
                 if ( $surveysData[$sid]['is_default'] ) {
-                    $isDefault = '<img src="'. $config->resourceBase. '/i/check.gif" alt="'. ts( 'Default' ). '" />';
+                    $isDefault = '<img src="'. $config->resourceBase. 'i/check.gif" alt="'. ts( 'Default' ). '" />';
                 }
                 $surveysData[$sid]['is_default'] = $isDefault;
                     
@@ -328,6 +339,10 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
     
     function browsePetition( ) 
     {
+       // ensure valid javascript - this must have a value set
+        $this->assign ('searchParams', json_encode(null));
+        $this->assign ('petitionCampaigns', json_encode(null));
+
         $this->assign( 'addPetitionUrl', CRM_Utils_System::url( 'civicrm/petition/add', 'reset=1&action=add' ) );
         
         $petitionCount = CRM_Campaign_BAO_Petition::getPetitionCount( );
@@ -374,7 +389,7 @@ class CRM_Campaign_Page_DashBoard extends CRM_Core_Page
                 $petitionsData[$pid]['isActive'] = $isActive;
                 $isDefault = null;
                 if ( $petitionsData[$pid]['is_default'] ) {
-                    $isDefault = '<img src="'. $config->resourceBase. '/i/check.gif" alt="'. ts( 'Default' ). '" />';
+                    $isDefault = '<img src="'. $config->resourceBase. 'i/check.gif" alt="'. ts( 'Default' ). '" />';
                 }
                 $petitionsData[$pid]['is_default'] = $isDefault;
                 

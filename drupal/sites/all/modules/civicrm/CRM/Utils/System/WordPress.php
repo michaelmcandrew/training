@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -34,12 +34,16 @@
  *
  */
 
+require_once 'CRM/Utils/System/Base.php';
 
 /**
  * WordPress specific stuff goes here
  */
-class CRM_Utils_System_WordPress {
-
+class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
+    function __construct() {
+        $this->is_drupal = false;
+    }
+ 
     /**
      * sets the title of the page
      *
@@ -56,6 +60,8 @@ class CRM_Utils_System_WordPress {
         if ( civicrm_wp_in_civicrm( ) ) {
             global $civicrm_wp_title;
             $civicrm_wp_title = $pageTitle;
+            $template = CRM_Core_Smarty::singleton( );
+            $template->assign( 'pageTitle', $pageTitle );
         }
     }
     
@@ -69,9 +75,9 @@ class CRM_Utils_System_WordPress {
      * @access public
      * @static
      */
-    static function appendBreadCrumb( $breadCrumbs ) {
-        $breadCrumb = drupal_get_breadcrumb( );
-
+    function appendBreadCrumb( $breadCrumbs ) {
+        $breadCrumb = wp_get_breadcrumb( );
+        
         if ( is_array( $breadCrumbs ) ) {
             foreach ( $breadCrumbs as $crumbs ) {
                 if ( stripos($crumbs['url'], 'id%%') ) {
@@ -87,7 +93,11 @@ class CRM_Utils_System_WordPress {
                 $breadCrumb[]  = "<a href=\"{$crumbs['url']}\">{$crumbs['title']}</a>";
             }
         }
-        drupal_set_breadcrumb( $breadCrumb );
+        
+        $template = CRM_Core_Smarty::singleton( );
+        $template->assign_by_ref( 'breadcrumb', $breadCrumb );
+        wp_set_breadcrumb( $breadCrumb );
+        
     }
 
     /**
@@ -97,9 +107,9 @@ class CRM_Utils_System_WordPress {
      * @access public
      * @static
      */
-    static function resetBreadCrumb( ) {
+    function resetBreadCrumb( ) {
         $bc = array( );
-        drupal_set_breadcrumb( $bc );
+        wp_set_breadcrumb( $bc );
     }
 
     /**
@@ -111,8 +121,8 @@ class CRM_Utils_System_WordPress {
      * @access public
      * @static
      */
-    static function addHTMLHead( $head ) {
-      drupal_set_html_head( $head );
+    function addHTMLHead( $head ) {
+        //drupal_set_html_head( $head );
     }
 
     /** 
@@ -124,7 +134,7 @@ class CRM_Utils_System_WordPress {
      * @access public  
      * @static  
      */  
-    static function mapConfigToSSL( ) {
+    function mapConfigToSSL( ) {
         global $base_url;
         $base_url = str_replace( 'http://', 'https://', $base_url );
     }
@@ -138,12 +148,12 @@ class CRM_Utils_System_WordPress {
      * @access public
      * @static
      */
-    static function postURL( $action ) {
+    function postURL( $action ) {
         if ( ! empty( $action ) ) {
             return $action;
         }
 
-        return self::url( $_GET['q'], null, true, null, false );
+        return $this->url( $_GET['q'], null, true, null, false );
     }
 
     /**
@@ -166,10 +176,30 @@ class CRM_Utils_System_WordPress {
                  $fragment = null, $htmlize = true,
                  $frontend = false ) {
         $config = CRM_Core_Config::singleton( );
-        $script =  'index.php';
+        $script = '';
+        $separator = $htmlize ? '&amp;' : '&';
+ 		$pageID    = '';
 
         require_once 'CRM/Utils/String.php';
         $path = CRM_Utils_String::stripPathChars( $path );
+
+        if ( $config->userFrameworkFrontend ) {
+            if ( get_option('permalink_structure') != '' ) { 
+                global $post;
+                $script = get_permalink( $post->ID );
+            } else {
+                $script = 'index.php';
+            }
+            
+            // when shortcode is inlcuded in page
+            if ( get_query_var('page_id') ) {
+                $pageID = "{$separator}page_id=" . get_query_var('page_id');
+            } else if ( get_query_var('p') ) {
+                // when shortcode is inserted in post
+                $pageID = "{$separator}p=" . get_query_var('p');
+            }
+ 
+        } 
 
         if (isset($fragment)) {
             $fragment = '#'. $fragment;
@@ -179,42 +209,44 @@ class CRM_Utils_System_WordPress {
             $base = parse_url( $config->userFrameworkBaseURL );
             $config->useFrameworkRelativeBase = $base['path'];
         }
+        
         $base = $absolute ? $config->userFrameworkBaseURL : $config->useFrameworkRelativeBase;
-        $base = 'http://wp/wp-admin/admin.php';
-        $script = '';
-        $separator = $htmlize ? '&amp;' : '&';
-
-        if (! $config->cleanURL ) {
-            if ( isset( $path ) ) {
+        
+        if ( is_admin() && !$frontend ) {
+            $base .= 'wp-admin/admin.php';
+        }
+        
+        if ( isset( $path ) ) {
+            if ( get_option('permalink_structure') != '' ) { 
                 if ( isset( $query ) ) {
-                    return $base . $script .'?page=CiviCRM&q=' . $path . $separator . $query . $fragment;
+                    return $script .'?page=CiviCRM&q=' . $path . $pageID . $separator . $query . $fragment;
                 } else {
-                    return $base . $script .'?page=CiviCRM&q=' . $path . $fragment;
-                }
+                    return $script .'?page=CiviCRM&q=' . $path . $pageID . $fragment;
+                }	 
             } else {
                 if ( isset( $query ) ) {
-                    return $base . $script .'?'. $query . $fragment;
+                    return $base . $script .'?page=CiviCRM&q=' . $path . $pageID . $separator . $query . $fragment;
                 } else {
-                    return $base . $fragment;
+                    return $base . $script .'?page=CiviCRM&q=' . $path . $pageID . $fragment;
                 }
             }
         } else {
-            if ( isset( $path ) ) {
+            if ( get_option('permalink_structure') != '' ) { 
                 if ( isset( $query ) ) {
-                    return $base . $path .'?'. $query . $fragment;
+                    return $script .'?'. $query . $pageID . $fragment;
                 } else {
-                    return $base . $path . $fragment;
-                }
+                    return $base . $fragment;
+                }	 
             } else {
                 if ( isset( $query ) ) {
-                    return $base . $script .'?'. $query . $fragment;
+                    return $base . $script .'?'. $query . $pageID . $fragment;
                 } else {
                     return $base . $fragment;
                 }
             }
         }
     }
-
+    
     /**
      * Authenticate the user against the drupal db
      *
@@ -226,7 +258,8 @@ class CRM_Utils_System_WordPress {
      * @access public
      * @static
      */
-    static function authenticate( $name, $password ) {
+    function authenticate( $name, $password ) {
+        // FIX ME: need to check on this
         require_once 'DB.php';
 
         $config = CRM_Core_Config::singleton( );
@@ -265,23 +298,30 @@ class CRM_Utils_System_WordPress {
      * @access public   
      * @static   
      */   
-    static function setMessage( $message ) {
+    function setMessage( $message ) {
     }
 
-    static function permissionDenied( ) {
+    function permissionDenied( ) {
+        CRM_Core_Error::fatal( ts( 'You do not have permission to access this page' ) );
     }
 
-    static function logout( ) {
+    function logout( ) {
+        // destroy session
+        if ( session_id( ) ) {
+            session_destroy();
+        }
+        wp_logout( );
+        wp_redirect( wp_login_url() );
     }
 
-    static function updateCategories( ) {
+    function updateCategories( ) {
     }
 
     /**
      * Get the locale set in the hosting CMS
      * @return string  with the locale or null for none
      */
-    static function getUFLocale()
+    function getUFLocale()
     {
         return null;
     }
@@ -292,11 +332,11 @@ class CRM_Utils_System_WordPress {
      * @param $name string  optional username for login
      * @param $pass string  optional password for login
      */
-    static function loadBootStrap($name = null, $pass = null)
+    function loadBootStrap($name = null, $pass = null)
     {
     }
     
-    static function cmsRootPath( ) 
+    function cmsRootPath( ) 
     {
         $cmsRoot  = $valid = null;
         $pathVars = explode( '/', str_replace( '\\', '/', $_SERVER['SCRIPT_FILENAME'] ) );
@@ -325,10 +365,10 @@ class CRM_Utils_System_WordPress {
      *
      * @return boolean true/false.
      */
-    public static function isUserLoggedIn( ) {
+    public function isUserLoggedIn( ) {
         $isloggedIn = false;
-        if ( function_exists( 'user_is_logged_in' ) ) {
-            $isloggedIn = user_is_logged_in( );
+        if ( function_exists( 'is_user_logged_in' ) ) {
+            $isloggedIn = is_user_logged_in( );
         }
         
         return $isloggedIn;
@@ -339,15 +379,13 @@ class CRM_Utils_System_WordPress {
      *
      * @return int $userID logged in user uf id.
      */
-    public static function getLoggedInUfID( ) {
+    public function getLoggedInUfID( ) {
         $ufID = null;
-        if ( function_exists( 'user_is_logged_in' ) && 
-             user_is_logged_in( ) && 
-             function_exists( 'user_uid_optional_to_arg' ) ) {
-            $ufID = user_uid_optional_to_arg( array( ) );
+        if ( function_exists( 'is_user_logged_in' ) && 
+             is_user_logged_in( ) ) {
+            global $current_user; 
+            $ufID = $current_user->ID; 
         }
-        
         return $ufID;
     }
-    
 }

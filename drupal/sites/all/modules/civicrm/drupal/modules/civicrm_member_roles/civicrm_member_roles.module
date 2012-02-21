@@ -96,18 +96,18 @@ function civicrm_member_roles_permission()
 /**
  * Implementation of hook_user_login().
  */
-function civicrm_member_roles_user_login( &$edit, &$account ) {
+function civicrm_member_roles_user_login( &$edit, $account ) {
     civicrm_member_roles_sync_user( $account );
 }
 
 /**
  * Implementation of hook_user_logout().
  */
-function civicrm_member_roles_user_logout( &$account ) {
+function civicrm_member_roles_user_logout( $account ) {
     civicrm_member_roles_sync_user( $account );
 }
 
-function civicrm_member_roles_sync_user( &$account) 
+function civicrm_member_roles_sync_user( $account) 
 {
     if ( ! civicrm_initialize( ) ) {
         return;
@@ -536,9 +536,12 @@ function _civicrm_member_roles_sync( $ext_uid = NULL, $cid = NULL )
         if ( empty( $uid ) ) continue;
         
         //Get all memberships of contact
-        civicrm_api_include('membership', false, 2);
-        $memberships = civicrm_contact_memberships_get( $cid );
-        $contactMemberships = CRM_Utils_Array::value( $cid, $memberships, array( ) );
+        require_once 'api/api.php';
+        $memParams = array( 'contact_id' => $cid,
+                            'version'    => 3 );
+        $memberships = civicrm_api( 'membership', 'get', $memParams );
+
+        $contactMemberships = CRM_Utils_Array::value( 'values', $memberships );
         $addRoles = array();
         $expRoles = array();
         
@@ -614,7 +617,7 @@ function _civicrm_member_roles_get_data($type)
         break;
     }
 
-    $dao =& CRM_Core_DAO::executeQuery($sql);
+    $dao = CRM_Core_DAO::executeQuery($sql);
   
     $result = array();
     while ($dao->fetch()) {

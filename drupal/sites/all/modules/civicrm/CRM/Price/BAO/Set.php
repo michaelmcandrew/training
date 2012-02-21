@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -65,7 +65,7 @@ class CRM_Price_BAO_Set extends CRM_Price_DAO_Set
     {
         $priceSetBAO = new CRM_Price_BAO_Set( );
         $priceSetBAO->copyValues( $params );
-        if ( defined( 'CIVICRM_EVENT_PRICE_SET_DOMAIN_ID' ) && CIVICRM_EVENT_PRICE_SET_DOMAIN_ID ) {
+        if ( self::eventPriceSetDomainID( ) ) {
             $priceSetBAO->domain_id = CRM_Core_Config::domainID( );
         }
         return $priceSetBAO->save( );
@@ -215,7 +215,7 @@ WHERE     ct.id = cp.contribution_type_id AND
     public static function deleteSet( $id )
     {
         // remove from all inactive forms
-        $usedBy =& self::getUsedBy( $id );
+        $usedBy = self::getUsedBy( $id );
         if ( isset( $usedBy['civicrm_event'] ) ) {
             require_once 'CRM/Event/DAO/Event.php';
             foreach ( $usedBy['civicrm_event'] as $eventId => $unused ) {
@@ -375,7 +375,7 @@ WHERE     ct.id = cp.contribution_type_id AND
             $query .= " AND civicrm_price_set.is_active = 1 ";
         }
         
-        if ( defined( 'CIVICRM_EVENT_PRICE_SET_DOMAIN_ID' ) && CIVICRM_EVENT_PRICE_SET_DOMAIN_ID ) {
+        if ( self::eventPriceSetDomainID( ) ) {
             $query .= " AND civicrm_price_set.domain_id = " . CRM_Core_Config::domainID( );
         }
 
@@ -387,7 +387,7 @@ WHERE     ct.id = cp.contribution_type_id AND
             $query .= " AND civicrm_price_set.extends LIKE '%$componentId%' ";
         }
         
-        $dao =& CRM_Core_DAO::executeQuery( $query );
+        $dao = CRM_Core_DAO::executeQuery( $query );
         while ( $dao->fetch() ) {
             $priceSets[$dao->id] = $dao->title;
         }       
@@ -453,10 +453,9 @@ AND ( expire_on IS NULL OR expire_on >= {$currentTime} )
 
         $sql = $select . $from . $where . $dateSelect . $orderBy;
 
-        $dao =& CRM_Core_DAO::executeQuery( $sql, $params );
+        $dao = CRM_Core_DAO::executeQuery( $sql, $params );
 
         $visibility = CRM_Core_PseudoConstant::visibility( 'name' );
-        
         while ( $dao->fetch() ) {
             $fieldID = $dao->id;
 
@@ -475,20 +474,19 @@ AND ( expire_on IS NULL OR expire_on >= {$currentTime} )
             }
             $setTree[$setID]['fields'][$fieldID]['options'] = CRM_Price_BAO_Field::getOptions( $fieldID, false );
         }
-
+       
         // also get the pre and post help from this price set
         $sql = "
 SELECT extends, contribution_type_id, help_pre, help_post
 FROM   civicrm_price_set
 WHERE  id = %1";
-        $dao =& CRM_Core_DAO::executeQuery( $sql, $params );
+        $dao = CRM_Core_DAO::executeQuery( $sql, $params );
         if ( $dao->fetch( ) ) {
             $setTree[$setID]['extends']              = $dao->extends;
             $setTree[$setID]['contribution_type_id'] = $dao->contribution_type_id;
             $setTree[$setID]['help_pre']             = $dao->help_pre;
             $setTree[$setID]['help_post']            = $dao->help_post;
         }
-
         return $setTree;
     }
 
@@ -691,10 +689,9 @@ WHERE  id = %1";
     static function buildPriceSet( &$form )  
     {
         $priceSetId = $form->get( 'priceSetId' );
-        
+        $userid = $form->getVar('_userID' );
         if ( !$priceSetId ) return;
         
-          
         $validFieldsOnly = true;
         $className = CRM_Utils_System::getClassName( $form );
         if ( in_array($className, array('CRM_Contribute_Form_Contribution', 'CRM_Member_Form_Membership') ) ) {
@@ -719,7 +716,7 @@ WHERE  id = %1";
         } else {
             $feeBlock =& $form->_priceSet['fields'];
         }
-        
+       
         // call the hook.
         require_once 'CRM/Utils/Hook.php';
         CRM_Utils_Hook::buildAmount( $component, $form, $feeBlock );
@@ -727,10 +724,14 @@ WHERE  id = %1";
         foreach ( $feeBlock as $field ) {
             if ( CRM_Utils_Array::value( 'visibility', $field ) == 'public' || 
                  !$validFieldsOnly ) {
-                
                 $options = CRM_Utils_Array::value( 'options', $field );
+                if ( $className == 'CRM_Contribute_Form_Contribution_Main' && $component = 'membership' ) {
+                    $checklifetime = self::checkCurrentMembership( $options, $userid );
+                    if ( $checklifetime ) {
+                        $form->assign( 'ispricelifetime', true );
+                    } 
+                }
                 if ( !is_array( $options ) ) continue; 
-                
                 CRM_Price_BAO_Field::addQuickFormElement( $form, 
                                                           'price_'.$field['id'], 
                                                           $field['id'], 
@@ -741,6 +742,39 @@ WHERE  id = %1";
             }
         }
     }
+    
+    
+    
+    /**
+     * Function to check the current Membership
+     * having end date null.
+     */
+    static function checkCurrentMembership( &$options, $userid ) {
+        if ( !$userid || empty($options) ) {
+            return;
+        }
+        static $_contact_memberships = array();
+        $checklifetime = false;
+        require_once 'CRM/Member/BAO/Membership.php';
+        foreach( $options as $key => $value ) {
+            if ( CRM_Utils_Array::value( 'membership_type_id', $value ) ) {
+                if ( !isset($_contact_memberships[$userid][$value['membership_type_id']]) ) {
+                    $_contact_memberships[$userid][$value['membership_type_id']] = CRM_Member_BAO_Membership::getContactMembership( $userid, $value['membership_type_id'],false );
+                }
+                $currentMembership = $_contact_memberships[$userid][$value['membership_type_id']];
+                if ( !empty($currentMembership ) && !CRM_Utils_Array::value( 'end_date', $currentMembership ) ) {
+                    unset($options[$key]);
+                    $checklifetime = true;
+                } 
+            }
+        }      
+        if ( $checklifetime ) {
+            return true;   
+        } else {
+            return false;
+        }
+    }
+    
     
     /** 
      * Function to set daefult the price set fields.
@@ -839,7 +873,8 @@ WHERE  id = %1";
      * @param int $sid the price set id 
      */
     function checkPermission( $sid ) {
-        if ( $sid && defined( 'CIVICRM_EVENT_PRICE_SET_DOMAIN_ID' ) && CIVICRM_EVENT_PRICE_SET_DOMAIN_ID ) {
+        if ( $sid &&
+             self::eventPriceSetDomainID( ) ) {
             $domain_id = CRM_Core_DAO::getFieldValue( 'CRM_Price_DAO_Set', $sid, 'domain_id',  'id' ) ;
             if ( CRM_Core_Config::domainID( ) != $domain_id ) {
                 CRM_Core_Error::fatal( ts( 'You do not have permission to access this page' ) ); 
@@ -969,4 +1004,11 @@ GROUP BY     mt.member_of_contact_id";
         $dao->fetch();
         return array( $dao->duration_interval, $dao->duration_unit );
     }   
+
+    static function eventPriceSetDomainID( ) {
+        require_once 'CRM/Core/BAO/Setting.php';
+        return CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME,
+                                              'event_price_set_domain_id',
+                                              null, false );
+    }
 }

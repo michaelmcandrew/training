@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -87,6 +87,21 @@ class CRM_Core_Permission {
         require_once( str_replace( '_', DIRECTORY_SEPARATOR, $config->userPermissionClass ) . '.php' );
         return eval( 'return ' . $config->userPermissionClass . '::check( $str ); ' );
     }
+
+    /**
+     * Given a group/role array, check for access requirements
+     *
+     * @param array $array the group/role to check
+     *
+     * @return boolean true if yes, else false
+     * @static
+     * @access public
+     */
+    static function checkGroupRole( $array ) {
+        $config   = CRM_Core_Config::singleton( );
+        require_once( str_replace( '_', DIRECTORY_SEPARATOR, $config->userPermissionClass ) . '.php' );
+        return eval( 'return ' . $config->userPermissionClass . '::checkGroupRole( $array ); ' );
+    }
     
     /**
      * Get the permissioned where clause for the user
@@ -132,9 +147,8 @@ class CRM_Core_Permission {
             return true;
         }
 
-        if ( defined( 'CIVICRM_MULTISITE' ) && 
-             CIVICRM_MULTISITE &&
-             self::check('administer Multiple Organizations') ) {
+        if ( self::check('administer Multiple Organizations') &&
+             self::isMultisiteEnabled( ) ) {
             return true;
         }
         
@@ -386,7 +400,7 @@ class CRM_Core_Permission {
             $prefix = ts( 'CiviCRM' ) . ': ';
             $permissions = self::getCorePermissions( ); 
 
-            if ( defined( 'CIVICRM_MULTISITE' ) && CIVICRM_MULTISITE ) {
+            if ( self::isMultisiteEnabled( ) ) {
                 $permissions['administer Multiple Organizations'] = 
                     $prefix . ts( 'administer Multiple Organizations' );
             }
@@ -443,6 +457,8 @@ class CRM_Core_Permission {
                    'administer dedupe rules'           => $prefix . ts( 'administer dedupe rules' ),
                    'merge duplicate contacts'          => $prefix . ts( 'merge duplicate contacts' ),
                    'view all notes'                    => $prefix . ts( 'view all notes' ),
+                   'access AJAX API'                   => $prefix . ts( 'access AJAX API' ),
+                   'access contact reference fields'   => $prefix . ts( 'access contact reference fields' )
                );
        
         return $permissions;
@@ -456,29 +472,40 @@ class CRM_Core_Permission {
      **/
     static function giveMeAllACLs( ) 
     {
-        $hasPermission = false;
         if ( CRM_Core_Permission::check( 'view all contacts' ) ||
              CRM_Core_Permission::check( 'edit all contacts' ) ) {
-            $hasPermission = true;
+            return true;
         }
         
-        //check for acl.
-        if ( ! $hasPermission ) { 
-            $aclPermission = self::getPermission( );
-            if ( in_array( $aclPermission, array( CRM_Core_Permission::EDIT, 
-                                                  CRM_Core_Permission::VIEW ) ) ) {
-                $hasPermission = true;
-            } else if ( defined( 'CIVICRM_MULTISITE' ) && CIVICRM_MULTISITE ) {
-                // For multisite just check if there are contacts in acl_contact_cache table for now.
-                // FixMe: so even if a user in multisite has very limited permission could still 
-                // see search / contact navigation options for example.
+        $session   = CRM_Core_Session::singleton( );
+        $contactID = $session->get( 'userID' );
 
-                require_once 'CRM/Contact/BAO/Contact/Permission.php';
-                $hasPermission = CRM_Contact_BAO_Contact_Permission::hasContactsInCache( );
-            }
+        if ( self::isMultisiteEnabled( ) ) {
+            // For multisite just check if there are contacts in acl_contact_cache table for now.
+            // FixMe: so even if a user in multisite has very limited permission could still 
+            // see search / contact navigation options for example.
+            require_once 'CRM/Contact/BAO/Contact/Permission.php';
+            return CRM_Contact_BAO_Contact_Permission::hasContactsInCache( CRM_Core_Permission::VIEW,
+                                                                           $contactID );
         }
+
+        //check for acl.
+        $aclPermission = self::getPermission( );
+        if ( in_array( $aclPermission, array( CRM_Core_Permission::EDIT, 
+                                              CRM_Core_Permission::VIEW ) ) ) {
+            return true;
+        }
+
+        // run acl where hook and see if the user is supplying an ACL clause
+        // that is not false
+        $tables = $whereTables = array( );
+        $where  = null;
         
-        return $hasPermission;
+        require_once 'CRM/Utils/Hook.php';
+        CRM_Utils_Hook::aclWhereClause( CRM_Core_Permission::VIEW,
+                                        $tables, $whereTables,
+                                        $contactID, $where );
+        return empty( $whereTables ) ? false : true;
     }
     
     /**
@@ -541,5 +568,10 @@ class CRM_Core_Permission {
         require_once( str_replace( '_', DIRECTORY_SEPARATOR, $config->userRoleClass ) . '.php' );
         return eval( 'return ' . $config->userRoleClass . '::roleEmails( $roleName );' );
     }
-    
+
+    static function isMultisiteEnabled( ) {
+        require_once 'CRM/Core/BAO/Setting.php';
+        return CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME,
+                                              'is_enabled' ) ? true : false;
+    }
 }

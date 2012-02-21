@@ -10,8 +10,46 @@
  */
  
 function civicrm_api3_generic_getfields($apiRequest) {
-  return civicrm_api3_create_success(_civicrm_api_get_fields($apiRequest['entity']));
+        if (empty($apiRequest['params']['action'])) { 
+                return civicrm_api3_create_success(_civicrm_api_get_fields($apiRequest['entity']));
+        }
+        $unique = TRUE;
+        $entity = strtolower($apiRequest['entity']);// should this be passed in already lower?
+        // defaults based on data model and API policy
+        switch (strtolower($apiRequest['params']['action'])) {
+                case 'getfields':
+                  return civicrm_api3_create_success(_civicrm_api_get_fields($apiRequest['entity'],$apiRequest['params']));
+                case 'create':
+                case 'update':
+                case 'replace':
+                  $unique = FALSE;
+                case 'get':
+                        $metadata = _civicrm_api_get_fields($apiRequest['entity'],$unique, $apiRequest['params']);
+                        if(empty($metadata['id']) && !empty($metadata[$apiRequest['entity'] . '_id'])){
+                          $metadata['id'] = $metadata[$entity . '_id'];
+                          $metadata['id']['api.aliases'] = array($entity . '_id');
+                          unset ($metadata[$entity . '_id']);
+                        }
+                        break;
+                case 'delete':
+                        $metadata = array('id' => array('title' => 'Unique Identifier',
+                                                        'api.required' => 1,
+                                                        'api.aliases' => array($entity . '_id')));
+                        break;
+                default:
+                        $metadata = array(); // oddballs are on their own
+        }
+        // find any supplemental information
+        $hypApiRequest = array('entity' => $apiRequest['entity'], 'action' => $apiRequest['params']['action'], 'version' => $apiRequest['version']);
+        $hypApiRequest +=_civicrm_api_resolve($hypApiRequest);
+        $helper = '_' . $hypApiRequest['function'] . '_spec'; 
+        if (function_exists($helper)) {
+                $helper($metadata); // alter
+        }
+        return  civicrm_api3_create_success($metadata);
 }
+ 
+
 
 function civicrm_api3_generic_getcount($apiRequest) {
   $result = civicrm_api($apiRequest['entity'],'get',$apiRequest['params']);
@@ -58,3 +96,5 @@ function civicrm_api3_generic_getvalue($apiRequest) {
 function civicrm_api3_generic_replace($apiRequest) {
   return _civicrm_api3_generic_replace($apiRequest['entity'], $apiRequest['params']);
 }
+
+

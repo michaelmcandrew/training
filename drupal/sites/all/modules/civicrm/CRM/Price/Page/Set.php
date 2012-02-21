@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -162,11 +162,11 @@ class CRM_Price_Page_Set extends CRM_Core_Page {
 
             // if action is delete do the needful.
             if ($action & (CRM_Core_Action::DELETE)) {
-                $usedBy =& CRM_Price_BAO_Set::getUsedBy( $sid );
+                $usedBy = CRM_Price_BAO_Set::getUsedBy( $sid );
                 
                 if ( empty( $usedBy ) ) {
                     // prompt to delete
-                    $session = & CRM_Core_Session::singleton();
+                    $session = CRM_Core_Session::singleton();
                     $session->pushUserContext(CRM_Utils_System::url('civicrm/admin/price', 'action=browse'));
                     $controller = new CRM_Core_Controller_Simple( 'CRM_Price_Form_DeleteSet','Delete Price Set', null );
                     // $id = CRM_Utils_Request::retrieve('sid', 'Positive', $this, false, 0);
@@ -265,10 +265,12 @@ class CRM_Price_Page_Set extends CRM_Core_Page {
                         'CiviContribute' => ts( 'Contribution' ),
                         'CiviMember'     => ts( 'Membership' ) );
         
+        require_once 'CRM/Price/BAO/Set.php';
         $dao = new CRM_Price_DAO_Set();
-        if ( defined( 'CIVICRM_EVENT_PRICE_SET_DOMAIN_ID' ) && CIVICRM_EVENT_PRICE_SET_DOMAIN_ID ) {
+        if ( CRM_Price_BAO_Set::eventPriceSetDomainID( ) ) {
             $dao->domain_id = CRM_Core_Config::domainID( );
         }
+
         $dao->find();
         while ($dao->fetch()) {
             $priceSet[$dao->id] = array();

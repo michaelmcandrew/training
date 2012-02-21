@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -504,9 +504,11 @@ LEFT JOIN  civicrm_contact scheduledContact ON ( $mailing.scheduled_id = schedul
         }
             
         if ( $sortBy &&
-             $this->_parent->_sortByCharacter ) {
-            $clauses[] = 'name LIKE %3';
-            $params[3] = array( $this->_parent->_sortByCharacter . '%', 'String' );
+             $this->_parent->_sortByCharacter !== null ) {
+            $clauses[] = 
+                "name LIKE '" . 
+                strtolower(CRM_Core_DAO::escapeWildCardString($this->_parent->_sortByCharacter)) .
+                "%'";
         }
 
         // dont do a the below assignement when doing a 

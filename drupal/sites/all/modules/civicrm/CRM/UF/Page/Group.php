@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -228,7 +228,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page
 
         // not sure how to circumvent our own navigation system to generate the right form url
         $urlReplaceWith = 'civicrm/profile/create&amp;gid='.$gid.'&amp;reset=1';
-        if ( $config->userFramework == 'Drupal' && $config->cleanURL ) {
+        if ( $config->userSystem->is_drupal && $config->cleanURL ) {
             $urlReplaceWith = 'civicrm/profile/create?gid='.$gid.'&amp;reset=1';
         }
         $profile = str_replace( 'civicrm/admin/uf/group', $urlReplaceWith, $profile );
@@ -236,7 +236,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         // FIXME: (CRM-3587) hack to make standalone profile in joomla work
         // without administrator login 
         if ( $config->userFramework == 'Joomla' ) {
-            $profile = str_replace( '/administrator/index.php', '/index.php', $profile );
+            $profile = str_replace( '/administrator/', '/index.php', $profile );
         }
 
         // add jquery files
@@ -391,12 +391,6 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         switch ( $context ) {
         case 'group':
             $url = CRM_Utils_System::url( 'civicrm/admin/uf/group', 'reset=1&action=browse' );
-
-            // as there is no argument after group in the url, and the context is different, 
-            // breadcrumb doesn't get set. And therefore setting it here -
-            $breadCrumb = array(array('title' => ts('CiviCRM Profile'),
-                                      'url'   => CRM_Utils_System::url(CRM_Utils_System::currentPath(), 'reset=1')));
-            CRM_Utils_System::appendBreadCrumb( $breadCrumb );
             break;
         case 'field' :
             $url = CRM_Utils_System::url( 'civicrm/admin/uf/group/field',

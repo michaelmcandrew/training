@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.4                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -41,7 +41,6 @@ class CRM_Report_Form_Pledge_Detail extends CRM_Report_Form {
     protected $_summary = null;
     protected $_totalPaid = false;
     protected $_customGroupExtends = array( 'Pledge' , 'Individual');
-
     
     function __construct( ) {
         $this->_columns = 

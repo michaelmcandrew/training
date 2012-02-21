@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -36,7 +36,7 @@
 
 require_once 'CRM/Admin/Form/Setting.php';
 require_once 'CRM/Utils/Mail.php';
-require_once "CRM/Core/BAO/Preferences.php";
+
 /**
  * This class generates form components for Smtp Server
  * 
@@ -130,6 +130,14 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
                     } else {
                         $params['auth']     = false;
                     }
+
+                    // set the localhost value, CRM-3153, CRM-9332
+                    $params['localhost'] = $_SERVER['SERVER_NAME'];
+
+                    // also set the timeout value, lets set it to 30 seconds
+                    // CRM-7510, CRM-9332
+                    $params['timeout'] = 30;
+
                     $mailerName = 'smtp';
                 } elseif ($formValues['outBound_option'] == 1) {
                     $subject = "Test for Sendmail settings";
@@ -150,7 +158,7 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
                                  'Subject'                   => $subject,
                                  );
                 
-                $mailer =& Mail::factory( $mailerName, $params );
+                $mailer = Mail::factory( $mailerName, $params );
                 
                 CRM_Core_Error::ignoreException( );
                 $result = $mailer->send( $toEmail, $headers, $message );
@@ -162,14 +170,12 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
                 }
             }
         } 
-        $mailingDomain = new CRM_Core_DAO_Preferences();
-        $mailingDomain->domain_id  = CRM_Core_Config::domainID( );
-        $mailingDomain->is_domain  = true;
-        $mailingDomain->find(true);
-        if ( $mailingDomain->mailing_backend ) {
-            $values = unserialize( $mailingDomain->mailing_backend );
-            require_once "CRM/Core/BAO/Setting.php";
-            CRM_Core_BAO_Setting::formatParams( $formValues, $values );
+        
+        require_once 'CRM/Core/BAO/Setting.php';
+        $mailingBackend = CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
+                                                         'mailing_backend' );
+        if ( ! empty( $mailingBackend ) ) {
+            CRM_Core_BAO_ConfigSetting::formatParams( $formValues, $mailingBackend );
         }
         
         // if password is present, encrypt it
@@ -177,9 +183,10 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
             require_once 'CRM/Utils/Crypt.php';
             $formValues['smtpPassword'] = CRM_Utils_Crypt::encrypt( $formValues['smtpPassword'] );
         }
-        
-        $mailingDomain->mailing_backend = serialize( $formValues );
-        $mailingDomain->save();
+
+        CRM_Core_BAO_Setting::setItem( $formValues,
+                                       CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
+                                       'mailing_backend' );
     }
     
     /**
@@ -194,17 +201,17 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
     static function formRule( $fields ) 
     {
         if ($fields['outBound_option'] == 0) {
-            if ( !$fields['smtpServer'] ) {
+            if ( ! CRM_Utils_Array::value( 'smtpServer', $fields ) ) {
                 $errors['smtpServer'] = 'SMTP Server name is a required field.';
             } 
-            if ( !$fields['smtpPort'] ) {
+            if ( ! CRM_Utils_Array::value( 'smtpPort', $fields ) ) {
                 $errors['smtpPort'] = 'SMTP Port is a required field.';
             }
-            if ( $fields['smtpAuth'] ) {
-                if (!$fields['smtpUsername']){
+            if ( CRM_Utils_Array::value( 'smtpAuth', $fields ) ) {
+                if (! CRM_Utils_Array::value( 'smtpUsername', $fields ) ) {
                     $errors['smtpUsername'] = 'If your SMTP server requires authentication please provide a valid user name.';
                 }
-                if (!$fields['smtpPassword']) {
+                if (! CRM_Utils_Array::value( 'smtpPassword', $fields ) ) {
                     $errors['smtpPassword'] = 'If your SMTP server requires authentication, please provide a password.';
                 }
             }
@@ -233,11 +240,10 @@ class CRM_Admin_Form_Setting_Smtp extends CRM_Admin_Form_Setting
         if ( ! $this->_defaults ) {
             $this->_defaults = array( );
 
-            require_once "CRM/Core/DAO/Preferences.php";
-            $mailingDomain = new CRM_Core_DAO_Preferences();
-            $mailingDomain->find(true);
-            if ( $mailingDomain->mailing_backend ) {
-                $this->_defaults = unserialize( $mailingDomain->mailing_backend );
+            $mailingBackend = CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
+                                                             'mailing_backend' );
+            if ( ! empty( $mailingBackend ) ) {
+                $this->_defaults = $mailingBackend;
 
                 if ( ! empty( $this->_defaults['smtpPassword'] ) ) {
                     require_once 'CRM/Utils/Crypt.php';

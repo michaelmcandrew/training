@@ -2,7 +2,7 @@
  
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -133,7 +133,7 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
                          'pan'        => $params['credit_card_number'],
                          'expdate'    => substr($expiry_string,2,4),
                          'crypt_type' => '7',
-                         'cust_id'    => $params['contact_id']
+                         'cust_id'    => $params['contactID']
                          );
         
         // Allow further manipulation of params via custom hooks
@@ -205,7 +205,7 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
             }
         }
         /* Check for application errors */
-        $result =& self::checkResult( $mpgResponse );
+        $result = self::checkResult( $mpgResponse );
         if ( is_a( $result, 'CRM_Core_Error' ) ) {
             return $result;
         }
@@ -235,7 +235,7 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
             return $result;
         }
         
-        $e =& CRM_Core_Error::singleton( );
+        $e = CRM_Core_Error::singleton( );
         if ( is_a( $errors, 'ErrorType' ) ) {
             $e->push( $errors->getErrorCode( ),
                       0, null,
@@ -251,7 +251,7 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
     }
     
     function &error( $error = null ) {
-        $e =& CRM_Core_Error::singleton( );
+        $e = CRM_Core_Error::singleton( );
         if ( is_object($error) ) {
             $e->push( $error->getResponseCode( ),
                       0, null,

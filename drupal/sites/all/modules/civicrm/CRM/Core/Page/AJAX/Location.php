@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -216,9 +216,9 @@ class CRM_Core_Page_AJAX_Location
         }
 
         require_once 'CRM/Core/PseudoConstant.php';
-        $result =& CRM_Core_PseudoConstant::stateProvinceForCountry( $_GET['_value'] );
+        $result = CRM_Core_PseudoConstant::stateProvinceForCountry( $_GET['_value'] );
 
-        $elements = array( array( 'name'  => ts('- select a state-'),
+        $elements = array( array( 'name'  => ts('- select a state -'),
             'value' => '' ) );
         foreach ( $result as $id => $name ) {
             $elements[] = array( 'name'  => $name,
@@ -232,14 +232,13 @@ class CRM_Core_Page_AJAX_Location
     
 
     function jqCounty( $config ) {
-        if ( ! isset( $_GET['_value'] ) ||
-        empty( $_GET['_value'] ) ) {
+        if ( CRM_Utils_System::isNull( $_GET['_value'] ) ) {
             $elements = array( array( 'name'  => ts('- select state -'),
-                'value' => '' ) );
+                                      'value' => '' ) );
         } else {
 
             require_once 'CRM/Core/PseudoConstant.php';
-            $result =& CRM_Core_PseudoConstant::countyForState( $_GET['_value'] );
+            $result = CRM_Core_PseudoConstant::countyForState( $_GET['_value'] );
 
             $elements = array( array( 'name'  => ts('- select -'),
                 'value' => '' ) );
@@ -276,8 +275,9 @@ class CRM_Core_Page_AJAX_Location
         }
 
         $result = array( );
-		require_once 'CRM/Core/BAO/Preferences.php';
-        $addressOptions  = CRM_Core_BAO_Preferences::valueOptions( 'address_options', true, null, true );
+		require_once 'CRM/Core/BAO/Setting.php';
+        $addressOptions  = CRM_Core_BAO_Setting::valueOptions( CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+                                                               'address_options', true, null, true );
         // lets output only required fields.
         foreach ( $addressOptions as $element => $isSet ) {
             if ( $isSet && (! in_array($element, array('im', 'openid'))) ) {

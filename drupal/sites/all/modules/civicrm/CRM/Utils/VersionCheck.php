@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -166,7 +166,15 @@ class CRM_Utils_VersionCheck
                     return;
                 }
 
-                $fp = fopen($cachefile, 'w');
+                $fp = @fopen($cachefile, 'w');
+                if ( ! $fp ) {
+                    require_once 'CRM/Core/Session.php';
+                    $message = ts( 'Do not have permission to write to file: %1',
+                                   array( 1 => $cachefile ) );
+                    CRM_Core_Session::setStatus( $message );
+                    return;
+                }
+
                 fwrite($fp, $this->latestVersion);
                 fclose($fp);
             }

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -97,7 +97,9 @@ class CRM_Price_BAO_FieldValue extends CRM_Price_DAO_FieldValue
             if ( !CRM_Utils_Array::value('name', $params) ) {
                 $params['name'] =  CRM_Utils_String::munge( CRM_Utils_Array::value('label', $params), '_', 64 );
             }
-            $params['weight'] = 1;  
+            if( !CRM_Utils_Array::value('weight', $params) ) { 
+                $params['weight'] = 1;  
+            }
         }
         
         $params['is_active'] = CRM_Utils_Array::value('is_active', $params, 0);

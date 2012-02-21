@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -82,7 +82,7 @@ AND     ( g.cache_date IS NULL OR
         )
 ";
 
-        $dao      =& CRM_Core_DAO::executeQuery( $query );
+        $dao      = CRM_Core_DAO::executeQuery( $query );
         $groupIDs = array( );
         while ( $dao->fetch() ) {
             $groupIDs[] = $dao->id;
@@ -115,12 +115,16 @@ AND     ( g.cache_date IS NULL OR
     static function store( &$groupID, &$values ) {
         $processed = false;
 
+        // sort the values so we put group IDs in front and hence optimize
+        // mysql storage (or so we think) CRM-9493
+        sort( $values );
+
         // to avoid long strings, lets do BULK_INSERT_COUNT values at a time
         while ( ! empty( $values ) ) {
             $processed = true;
             $input = array_splice( $values, 0, CRM_Core_DAO::BULK_INSERT_COUNT );
             $str   = implode( ',', $input );
-            $sql = "REPLACE INTO civicrm_group_contact_cache (group_id,contact_id) VALUES $str;";
+            $sql = "INSERT IGNORE INTO civicrm_group_contact_cache (group_id,contact_id) VALUES $str;";
             CRM_Core_DAO::executeQuery( $sql );
         }
 
@@ -247,7 +251,7 @@ WHERE  id = %1
         $customClass = null;
         if ( $savedSearchID ) {
             require_once 'CRM/Contact/BAO/SavedSearch.php';
-            $ssParams =& CRM_Contact_BAO_SavedSearch::getSearchParams($savedSearchID);
+            $ssParams   = CRM_Contact_BAO_SavedSearch::getSearchParams($savedSearchID);
 
             // rectify params to what proximity search expects if there is a value for prox_distance
             // CRM-7021
@@ -262,7 +266,7 @@ WHERE  id = %1
                                              $savedSearchID,
                                              'mapping_id' ) ) {
                 require_once "CRM/Core/BAO/Mapping.php";
-                $fv =& CRM_Contact_BAO_SavedSearch::getFormValues($savedSearchID);
+                $fv = CRM_Contact_BAO_SavedSearch::getFormValues($savedSearchID);
                 $returnProperties = CRM_Core_BAO_Mapping::returnProperties( $fv );
             }
 
@@ -278,15 +282,26 @@ WHERE  id = %1
                 $searchSQL   = $customClass->contactIDs( );
                 $idName = 'contact_id';
             } else {
+                $formValues = CRM_Contact_BAO_SavedSearch::getFormValues( $savedSearchID );
+
                 require_once 'CRM/Contact/BAO/Query.php';
+
                 $query = new CRM_Contact_BAO_Query($ssParams, $returnProperties, null,
                                                     false, false, 1,
-                                                    true, true, false );
+                                                    true, true,
+                                                   false,
+                                                   CRM_Utils_Array::value( 'display_relationship_type',
+                                                                           $formValues ),
+                                                   CRM_Utils_Array::value( 'operator',
+                                                                           $formValues, 'AND' ) );
                 $query->_useDistinct = false;
                 $query->_useGroupBy = false;
                 $searchSQL =& $query->searchQuery( 0, 0, null,
                                                    false, false,
-                                                   false, true, true, null );
+                                                   false, true,
+                                                   true,
+                                                   null, null, null,
+                                                   true );
             }
             $groupID = CRM_Utils_Type::escape($groupID, 'Integer');
             $sql = $searchSQL . 
@@ -336,7 +351,7 @@ AND  civicrm_group_contact.group_id = $groupID ";
             require_once 'CRM/Contact/BAO/Group.php';
             $childrenIDs = explode( ',', $group->children );
             foreach ( $childrenIDs as $childID ) {
-                $contactIDs =& CRM_Contact_BAO_Group::getMember( $childID, false );
+                $contactIDs = CRM_Contact_BAO_Group::getMember( $childID, false );
                 //Unset each contact that is removed from the parent group
                 foreach($removed_contacts as $removed_contact) {
                     unset($contactIDs[$removed_contact]);

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -160,8 +160,15 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend
             // attempt to save activity targets                       
             $targetParams = array( 'activity_id'       => $activity->id,
                                    'target_contact_id' => $contact );            
-            
-            $resultTarget = CRM_Activity_BAO_ActivityTarget::create( $targetParams );           
+            // See if it already exists
+            require_once 'CRM/Activity/DAO/ActivityTarget.php';
+            $activity_target = new CRM_Activity_DAO_ActivityTarget();
+            $activity_target->activity_id = $activity->id;
+            $activity_target->target_contact_id = $contact;
+            $activity_target->find ( true );
+            if(empty($activity_target->id)) {
+              $resultTarget = CRM_Activity_BAO_ActivityTarget::create( $targetParams );           
+            }
         }
         
         $transaction->commit( );
@@ -215,7 +222,7 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend
         } elseif ( $params['entity_table'] == 'civicrm_pcp' ) {
             $mailParams['email_from'] = CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_Email', $params['source_contact_id'],
                                                                      'email', 'contact_id' );
-            $urlPath = 'civicrm/contribute/pcp/info';
+            $urlPath = 'civicrm/pcp/info';
             $mailParams['module'] = 'contribute';
         } 
 

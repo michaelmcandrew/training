@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -128,12 +128,12 @@ class CRM_Contact_Form_CustomData extends CRM_Core_Form
             return CRM_Custom_Form_CustomData::preProcess( $this );
         }
 
-		$this->_groupID = CRM_Utils_Request::retrieve( 'groupId', 'Positive', $this, true );
+		$this->_groupID = CRM_Utils_Request::retrieve( 'groupID', 'Positive', $this, true );
 		$this->_tableID  = CRM_Utils_Request::retrieve( 'tableId', 'Positive', $this, true );
 
 		require_once 'CRM/Contact/BAO/Contact.php';
 		$this->_contactType = CRM_Contact_BAO_Contact::getContactType($this->_tableID);
-		$this->_contactSubType = CRM_Contact_BAO_Contact::getContactSubType($this->_tableID);
+		$this->_contactSubType = CRM_Contact_BAO_Contact::getContactSubType($this->_tableID, ',');
 		$this->assign( 'contact_type', $this->_contactType);
 		$this->assign( 'contact_subtype', $this->_contactSubType);
         list( $displayName, $contactImage ) = CRM_Contact_BAO_Contact::getDisplayAndImage( $this->_tableID );        

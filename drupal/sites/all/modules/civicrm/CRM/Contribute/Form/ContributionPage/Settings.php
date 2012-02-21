@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -146,6 +146,9 @@ class CRM_Contribute_Form_ContributionPage_Settings extends CRM_Contribute_Form_
         $this->add('text', 'goal_amount', ts('Goal Amount'), array( 'size' => 8, 'maxlength' => 12 ) ); 
         $this->addRule('goal_amount', ts('Please enter a valid money value (e.g. %1).', array(1 => CRM_Utils_Money::format('99.99', ' '))), 'money');
         
+        // is this page shareable through social media ?
+            $this->addElement('checkbox', 'is_share', ts('Allow sharing through social media?') );
+            
         // is this page active ?
         $this->addElement('checkbox', 'is_active', ts('Is this Online Contribution Page Active?') );
 
@@ -213,6 +216,7 @@ class CRM_Contribute_Form_ContributionPage_Settings extends CRM_Contribute_Form_
             $params['currency'] = $config->defaultCurrency;
         }            
        
+        $params['is_share']              = CRM_Utils_Array::value('is_share'             , $params, false);
         $params['is_active']             = CRM_Utils_Array::value('is_active'            , $params, false);
         $params['is_credit_card_only']   = CRM_Utils_Array::value('is_credit_card_only'  , $params, false);
         $params['honor_block_is_active'] = CRM_Utils_Array::value('honor_block_is_active', $params, false);
@@ -231,7 +235,7 @@ class CRM_Contribute_Form_ContributionPage_Settings extends CRM_Contribute_Form_
         }
 
         require_once 'CRM/Contribute/BAO/ContributionPage.php';
-        $dao =& CRM_Contribute_BAO_ContributionPage::create( $params );
+        $dao = CRM_Contribute_BAO_ContributionPage::create( $params );
         
         // make entry in UF join table for onbehalf of org profile
         $ufJoinParams = array( 'is_active'    => 1, 

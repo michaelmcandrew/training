@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -135,6 +135,10 @@ class CRM_Core_QuickForm_Action_Display extends CRM_Core_QuickForm_Action {
         $content = $template->fetch( $controller->getTemplateFile( ) );
 
         CRM_Utils_System::appendTPLFile( $pageTemplateFile, $content );
+
+        //its time to call the hook.
+        require_once 'CRM/Utils/Hook.php';
+        CRM_Utils_Hook::alterContent( $content, 'form', $pageTemplateFile, $page );
 
         $print = $controller->getPrint( );
         if ( $print ) {

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -220,8 +220,11 @@ class CRM_Admin_Form_WordReplacements extends CRM_Core_Form
                             'disabled' => $disabled );
         
         $config = CRM_Core_Config::singleton();
+
+        require_once 'CRM/Core/DAO/Domain.php';
         $domain = new CRM_Core_DAO_Domain();
         $domain->find(true);
+
         if ( $domain->locales && $config->localeCustomStrings ) {
             // for multilingual
             $addReplacements = $config->localeCustomStrings;

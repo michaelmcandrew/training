@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -121,19 +121,34 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
         $navContacts = array( 'prevContactID'   => null,
                               'prevContactName' => null,
                               'nextContactID'   => null,
-                              'nextContactName' => null );
+                              'nextContactName' => null,
+                              'nextPrevError'   => 0 );
         if ( $qfKey ) {
             require_once 'CRM/Core/BAO/PrevNextCache.php';
             $pos = CRM_Core_BAO_PrevNextCache::getPositions( "civicrm search $qfKey",
                                                              $this->_contactId,
                                                              $this->_contactId );
+            $found = false;
+
             if ( isset( $pos['prev'] ) ) {
                 $navContacts['prevContactID'  ] = $pos['prev']['id1'];
                 $navContacts['prevContactName'] = $pos['prev']['data'];
+                $found = true;
             }
+
             if ( isset( $pos['next'] ) ) {
                 $navContacts['nextContactID'  ] = $pos['next']['id1'];
                 $navContacts['nextContactName'] = $pos['next']['data'];
+                $found = true;
+            }
+
+            if ( ! $found ) {
+                // seems like we did not find any contacts
+                // maybe due to bug CRM-9096
+                // however we should account for 1 contact results (which dont have prev next)
+                if ( ! $pos['foundEntry'] ) {
+                    $navContacts['nextPrevError'] = 1;
+                }
             }
         }
         $this->assign( $navContacts );
@@ -226,9 +241,10 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
         $config = CRM_Core_Config::singleton( );
         require_once 'CRM/Core/BAO/UFMatch.php';
         if ( $uid = CRM_Core_BAO_UFMatch::getUFId( $this->_contactId ) ) {
-            if ($config->userFramework == 'Drupal') {
+            if ($config->userSystem->is_drupal == '1' && CRM_Core_Permission::check( 'Administer users' ) ) {
                 $userRecordUrl = CRM_Utils_System::url( 'user/' . $uid );
-            } else if ( $config->userFramework == 'Joomla' ) {
+            } else if ( $config->userFramework == 'Joomla' &&
+                        JFactory::getUser()->authorise('core.edit', 'com_users') ) {
                 $userRecordUrl = $config->userFrameworkVersion > 1.5 ? 
                     $config->userFrameworkBaseURL ."index.php?option=com_users&view=user&task=user.edit&id=". $uid : 
                     $config->userFrameworkBaseURL ."index2.php?option=com_users&view=user&task=edit&id[]=". $uid;
@@ -237,18 +253,25 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
             }
             $this->assign( 'userRecordUrl', $userRecordUrl );
             $this->assign( 'userRecordId' , $uid );
+        } else if ( ( $config->userFramework == 'Drupal' && CRM_Core_Permission::check( 'Administer users' ) ) ||
+                    ( $config->userFramework == 'Joomla' &&
+                      JFactory::getUser()->authorise('core.create', 'com_users') ) ) {
+            $userAddUrl = CRM_Utils_System::url('civicrm/contact/view/useradd',
+                                                'reset=1&action=add&cid=' . $this->_contactId );
+            $this->assign( 'userAddUrl', $userAddUrl );
         }
-    
+
         if ( CRM_Core_Permission::check( 'access Contact Dashboard' ) ) {
             $dashboardURL = CRM_Utils_System::url( 'civicrm/user',
                                                    "reset=1&id={$this->_contactId}" );
             $this->assign( 'dashboardURL', $dashboardURL );
         }
         
-        if ( defined( 'CIVICRM_MULTISITE' ) && 
-             CIVICRM_MULTISITE              && 
-             $contactType == 'Organization' &&
-             CRM_Core_Permission::check( 'administer Multiple Organizations' ) ) {
+        require_once 'CRM/Core/BAO/Setting.php';
+        if ( $contactType == 'Organization' &&
+             CRM_Core_Permission::check( 'administer Multiple Organizations' ) &&
+             CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME,
+                                            'is_enabled' ) ) {
             require_once 'CRM/Contact/BAO/GroupOrganization.php';
             //check is any relationship between the organization and groups
             $groupOrg = CRM_Contact_BAO_GroupOrganization::hasGroupAssociated( $this->_contactId );

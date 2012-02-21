@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -131,6 +131,12 @@ class CRM_Utils_Type
         case 'Country':
         case 'StateProvince':
             if (CRM_Utils_Rule::positiveInteger($data)) {
+                return $data;
+            }
+            break;
+
+        case 'Link':
+            if (CRM_Utils_Rule::url( $data = trim($data) )) {
                 return $data;
             }
             break;

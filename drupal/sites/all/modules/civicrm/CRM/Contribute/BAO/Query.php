@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -57,7 +57,7 @@ class CRM_Contribute_BAO_Query
             self::$_contributionFields = array( );
             
             require_once 'CRM/Contribute/BAO/Contribution.php';
-            $fields =& CRM_Contribute_BAO_Contribution::exportableFields( );
+            $fields = CRM_Contribute_BAO_Contribution::exportableFields( );
             
             unset( $fields['contribution_contact_id'] );
 
@@ -78,7 +78,7 @@ class CRM_Contribute_BAO_Query
         if ( $query->_mode & CRM_Contact_BAO_Query::MODE_CONTRIBUTE ) {
             $query->_select['contribution_id'] = "civicrm_contribution.id as contribution_id";
             $query->_element['contribution_id'] = 1;
-            $query->_tables['civicrm_contribution'] = 1;
+            $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
         }
 
         // get contribution_type
@@ -119,6 +119,38 @@ class CRM_Contribute_BAO_Query
             $query->_tables['contribution_payment_instrument'] = 1;
         }
 
+        // get honor contact name
+        if ( CRM_Utils_Array::value( 'honor_contact_name', $query->_returnProperties ) ) {
+            $query->_select['contribution_honor_contact_name']  = "civicrm_contact_c.display_name as contribution_honor_contact_name";
+            $query->_element['contribution_honor_contact_name'] = 1;
+            $query->_tables['civicrm_contribution'] = 1;
+            $query->_tables['contribution_honor_contact_name'] = 1;
+        }
+
+        // get honor type label
+        if ( CRM_Utils_Array::value( 'honor_type_label', $query->_returnProperties ) ) {
+            $query->_select['contribution_honor_type_label']  = "honor_type.label as contribution_honor_type_label";
+            $query->_element['contribution_honor_type_label'] = 1;
+            $query->_tables['civicrm_contribution'] = 1;
+            $query->_tables['contribution_honor_type_label'] = 1;
+        }
+
+        // get honor contact email
+        if ( CRM_Utils_Array::value( 'honor_contact_email', $query->_returnProperties ) ) {
+            $query->_select['contribution_honor_contact_email']  = "honor_email.email as contribution_honor_contact_email";
+            $query->_element['contribution_honor_contact_email'] = 1;
+            $query->_tables['civicrm_contribution'] = 1;
+            $query->_tables['contribution_honor_contact_email'] = 1;
+        }
+
+        // get honor contact id
+        if ( CRM_Utils_Array::value( 'honor_contact_id', $query->_returnProperties ) ) {
+            $query->_select['contribution_honor_contact_id']  = "civicrm_contribution.honor_contact_id as contribution_honor_contact_id";
+            $query->_element['contribution_honor_contact_id'] = 1;
+            $query->_tables['civicrm_contribution'] = 1;
+        }
+
+
         if ( CRM_Utils_Array::value( 'check_number', $query->_returnProperties ) ) {
             $query->_select['contribution_check_number']  = "civicrm_contribution.check_number as contribution_check_number";
             $query->_element['contribution_check_number'] = 1;
@@ -137,6 +169,9 @@ class CRM_Contribute_BAO_Query
         $isTest   = false;
         $grouping = null;
         foreach ( array_keys( $query->_params ) as $id ) {
+            if ( !CRM_Utils_Array::value(0, $query->_params[$id]) ) {
+                continue;
+            }
             if ( substr( $query->_params[$id][0], 0, 13 ) == 'contribution_' ) {
                 if ( $query->_mode == CRM_Contact_BAO_QUERY::MODE_CONTACTS ) {
                     $query->_useDistinct = true;
@@ -363,6 +398,13 @@ class CRM_Contribute_BAO_Query
             }
             return;
 
+        case 'contribution_recurring_isnull':
+            if ( $value ) {
+                $query->_where[$grouping][] = "civicrm_contribution.contribution_recur_id IS NULL";
+                $query->_qill[$grouping][]  = ts( "Displaying Non Recurring Contributions" );
+            }
+            return;
+
         case 'contribution_recur_id':
             $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause( "civicrm_contribution.contribution_recur_id", 
                                                                               $op, $value, "Integer" ) ;
@@ -401,7 +443,7 @@ class CRM_Contribute_BAO_Query
         case 'contribution_pcp_display_in_roll':
             $query->_where[$grouping][] = " civicrm_contribution_soft.pcp_display_in_roll $op '$value'";
             if ( $value ) {
-                $query->_qill[$grouping][] = ts( "Display in Roll" );
+                $query->_qill[$grouping][] = ts( "Personal Campaign Page Honor Roll" );
             }
             $query->_tables['civicrm_contribution_soft'] = $query->_whereTables['civicrm_contribution_soft'] = 1;
             return;
@@ -512,6 +554,21 @@ class CRM_Contribute_BAO_Query
                                                     civicrm_contribution.id = civicrm_note.entity_id )";
             break;
 
+
+        case 'contribution_honor_contact_name':
+            $from .= " $side JOIN civicrm_contact civicrm_contact_c ON (civicrm_contribution.honor_contact_id = civicrm_contact_c.id )";
+            break;
+            
+        case 'contribution_honor_contact_email':
+            $from .= " $side JOIN civicrm_email as honor_email ON (civicrm_contribution.honor_contact_id = honor_email.contact_id AND honor_email.is_primary = 1 )";
+            break;
+
+        case 'contribution_honor_type_label':
+            $from = " $side JOIN civicrm_option_group option_group_honor_type ON ( option_group_honor_type.name = 'honor_type')";
+            $from .= " $side JOIN civicrm_option_value honor_type ON (civicrm_contribution.honor_type_id = honor_type.value
+                               AND option_group_honor_type.id = honor_type.option_group_id ) ";
+            break;
+
         case 'contribution_membership':
             $from  = " $side  JOIN civicrm_membership_payment ON civicrm_membership_payment.contribution_id = civicrm_contribution.id";
             $from .= " $side  JOIN civicrm_membership ON civicrm_membership_payment.membership_id = civicrm_membership.id ";
@@ -529,7 +586,8 @@ class CRM_Contribute_BAO_Query
         return $from;
     }
 
-    static function defaultReturnProperties( $mode ) 
+    static function defaultReturnProperties( $mode,
+                                             $includeCustomFields = true ) 
     {
         $properties = null;
         if ( $mode & CRM_Contact_BAO_Query::MODE_CONTRIBUTE ) {
@@ -573,12 +631,14 @@ class CRM_Contribute_BAO_Query
                                 'contribution_campaign_id'=> 1
                                 );
 
-            // also get all the custom contribution properties
-            require_once "CRM/Core/BAO/CustomField.php";
-            $fields = CRM_Core_BAO_CustomField::getFieldsForImport('Contribution');
-            if ( ! empty( $fields ) ) {
-                foreach ( $fields as $name => $dontCare ) {
-                    $properties[$name] = 1;
+            if ( $includeCustomFields ) {
+                // also get all the custom contribution properties
+                require_once "CRM/Core/BAO/CustomField.php";
+                $fields = CRM_Core_BAO_CustomField::getFieldsForImport('Contribution');
+                if ( ! empty( $fields ) ) {
+                    foreach ( $fields as $name => $dontCare ) {
+                        $properties[$name] = 1;
+                    }
                 }
             }
         }
@@ -666,10 +726,11 @@ class CRM_Contribute_BAO_Query
         $form->addElement( 'text', 'contribution_transaction_id', ts( "Transaction ID" ) );
 
         $form->addElement( 'checkbox', 'contribution_recurring' , ts( 'Find Recurring Contributions?' ) );
+        $form->addElement( 'checkbox', 'contribution_recurring_isnull' , ts( 'Find Non Recurring Contributions?' ) );
         $form->addElement('text', 'contribution_check_number', ts('Check Number') );
         
         //add field for pcp display in roll search
-        $form->addYesNo( 'contribution_pcp_display_in_roll', ts('Display In Roll ?') );
+        $form->addYesNo( 'contribution_pcp_display_in_roll', ts('Personal Campaign Page Honor Roll?') );
         
         // add all the custom  searchable fields
         require_once 'CRM/Core/BAO/CustomGroup.php';

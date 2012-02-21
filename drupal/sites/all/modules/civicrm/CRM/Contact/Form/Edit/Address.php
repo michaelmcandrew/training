@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -92,8 +92,9 @@ class CRM_Contact_Form_Edit_Address
         $form->addElement('hidden', "address[$blockId][master_id]" );
         
         
-        require_once 'CRM/Core/BAO/Preferences.php';
-        $addressOptions = CRM_Core_BAO_Preferences::valueOptions( 'address_options', true, null, true );
+        require_once 'CRM/Core/BAO/Setting.php';
+        $addressOptions = CRM_Core_BAO_Setting::valueOptions( CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+                                                              'address_options', true, null, true );
         $attributes = CRM_Core_DAO::getAttribute('CRM_Core_DAO_Address');
         
         $elements = array( 
@@ -227,7 +228,7 @@ class CRM_Contact_Form_Edit_Address
             // And we can't set it to 'address_' because we want to set it in a slightly different format.
             CRM_Core_BAO_CustomGroup::buildQuickForm( $form, $groupTree, false, 1, 'dnc_' );
 
-            $template  =& CRM_Core_Smarty::singleton( );
+            $template  = CRM_Core_Smarty::singleton( );
             $tplGroupTree = $template->get_template_vars( 'address_groupTree' );
             $tplGroupTree = empty($tplGroupTree) ? array() : $tplGroupTree;
 
@@ -263,7 +264,7 @@ class CRM_Contact_Form_Edit_Address
      * @access public
      * @static
      */
-    static function formRule( $fields, $errors )
+    static function formRule( $fields, $files )
     {
         $errors = array( );
         // check for state/county match if not report error to user.
@@ -273,24 +274,9 @@ class CRM_Contact_Form_Edit_Address
                     continue;
                 }
                 
-                if ( $countryId = CRM_Utils_Array::value( 'country_id', $addressValues ) ) {
-                    if ( !array_key_exists( $countryId, CRM_Core_PseudoConstant::country( ) ) ) { 
-                        $countryId = null;
-                        $errors["address[$instance][country_id]"] = ts('Enter a valid country name.');
-                    }
-                } 
-                
-                if ( $stateProvinceId = CRM_Utils_Array::value( 'state_province_id', $addressValues  ) ) {
-                    // hack to skip  - type first letter(s) - for state_province
-                    // CRM-2649
-                    if ( $stateProvinceId != ts('- type first letter(s) -') ) {
-                        if ( !array_key_exists( $stateProvinceId, CRM_Core_PseudoConstant::stateProvince( false, false ) ) ) {
-                            $stateProvinceId = null;
-                            $errors["address[$instance][state_province_id]"] = ts('Please select a valid State/Province name.');
-                        }
-                    }
-                }
-                
+                $countryId = CRM_Utils_Array::value( 'country_id', $addressValues );
+                $stateProvinceId = CRM_Utils_Array::value( 'state_province_id', $addressValues );
+
                 //do check for mismatch countries 
                 if ( $stateProvinceId && $countryId ) {
                     $stateProvinceDAO = new CRM_Core_DAO_StateProvince( );
@@ -299,7 +285,7 @@ class CRM_Contact_Form_Edit_Address
                     if ( $stateProvinceDAO->country_id != $countryId ) {
                         // countries mismatch hence display error
                         $stateProvinces = CRM_Core_PseudoConstant::stateProvince( );
-                        $countries =& CRM_Core_PseudoConstant::country( );
+                        $countries = CRM_Core_PseudoConstant::country( );
                         $errors["address[$instance][state_province_id]"] = ts( 'State/Province %1 is not part of %2. It belongs to %3.', 
                                                                            array( 1 => $stateProvinces[$stateProvinceId],
                                                                                   2 => $countries[$countryId],
@@ -315,7 +301,7 @@ class CRM_Contact_Form_Edit_Address
                     $countyDAO->id = $countyId;
                     $countyDAO->find(true);
                     if ( $countyDAO->state_province_id != $stateProvinceId ) {
-                        $counties =& CRM_Core_PseudoConstant::county( );
+                        $counties = CRM_Core_PseudoConstant::county( );
                         $errors["address[$instance][county_id]"] = ts( 'County %1 is not part of %2. It belongs to %3.', 
                                                                            array( 1 => $counties[$countyId],
                                                                                   2 => $stateProvinces[$stateProvinceId],
@@ -388,8 +374,10 @@ class CRM_Contact_Form_Edit_Address
                                    CRM_Core_PseudoConstant::countyForState( $stateID ) ); 
             } 
             
-            // CRM-7296 freeze the select for state if address is shared with household 
-            if ( CRM_Utils_Array::value( 'is_shared', $form->_fields[$stateElementName] ) ) {
+            // CRM-7296 freeze the select for state if address is shared with household
+            // CRM-9070 freeze the select for state if it is view only
+            if ( CRM_Utils_Array::value( 'is_shared', $form->_fields[$stateElementName] ) ||
+                 CRM_Utils_Array::value( 'is_view', $form->_fields[$stateElementName] ) ) {
                 $stateSelect->freeze( );
             }
         }

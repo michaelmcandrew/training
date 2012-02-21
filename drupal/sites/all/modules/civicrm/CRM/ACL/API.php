@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -176,7 +176,7 @@ class CRM_ACL_API {
         if ( array_key_exists( $key, $cache ) ) {
             $groups =& $cache[$key];
         } else {
-            $groups =& self::group( $type, $contactID, $tableName, $allGroups, $includedGroups );
+            $groups = self::group( $type, $contactID, $tableName, $allGroups, $includedGroups );
             $cache[$key] = $groups;
         }
 

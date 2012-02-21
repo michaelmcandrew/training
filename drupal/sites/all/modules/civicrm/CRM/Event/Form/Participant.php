@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -245,13 +245,13 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             foreach ( $processors as $ppID => $label ) {
                 require_once 'CRM/Core/BAO/PaymentProcessor.php';
                 require_once 'CRM/Core/Payment.php';
-                $paymentProcessor =& CRM_Core_BAO_PaymentProcessor::getPayment( $ppID, $this->_mode );
+                $paymentProcessor = CRM_Core_BAO_PaymentProcessor::getPayment( $ppID, $this->_mode );
                 if ( $paymentProcessor['payment_processor_type'] == 'PayPal' && !$paymentProcessor['user_name'] ) {
                     continue;
                 } else if ( $paymentProcessor['payment_processor_type'] == 'Dummy' && $this->_mode == 'live' ) {
                     continue;
                 } else {
-                    $paymentObject =& CRM_Core_Payment::singleton( $this->_mode, $paymentProcessor, $this );
+                    $paymentObject = CRM_Core_Payment::singleton( $this->_mode, $paymentProcessor, $this );
                     $error = $paymentObject->checkConfig( );
                     if ( empty( $error ) ) {
                         $validProcessors[$ppID] = $label;
@@ -266,7 +266,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             }
             // also check for billing information
             // get the billing location type
-            $locationTypes =& CRM_Core_PseudoConstant::locationType( );
+            $locationTypes = CRM_Core_PseudoConstant::locationType( );
             // CRM-8108 remove ts around Billing location type
             //$this->_bltID = array_search( ts('Billing'),  $locationTypes );
             $this->_bltID = array_search( 'Billing',  $locationTypes );
@@ -434,7 +434,7 @@ SELECT civicrm_custom_group.name as name,
    AND extends = 'Participant'
    AND is_active = 1";
             
-            $dao =& CRM_Core_DAO::executeQuery( $query );
+            $dao = CRM_Core_DAO::executeQuery( $query );
             while ( $dao->fetch( ) ) {
                 if ( $dao->value ) {
                     $getRole = explode( CRM_Core_DAO::VALUE_SEPARATOR, $dao->value );
@@ -731,7 +731,7 @@ SELECT civicrm_custom_group.name as name,
 SELECT     civicrm_event.id as id, civicrm_event.event_type_id as event_type_id
 FROM       civicrm_event
 WHERE      civicrm_event.is_template IS NULL OR civicrm_event.is_template = 0";
-        $dao =& CRM_Core_DAO::executeQuery( $query );
+        $dao = CRM_Core_DAO::executeQuery( $query );
         $eventAndTypeMapping = array();
         while ( $dao->fetch( ) ) {
             $eventAndTypeMapping[$dao->id] = $dao->event_type_id;
@@ -1180,8 +1180,8 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
             $this->_params["country-{$this->_bltID}"] = $this->_params["billing_country-{$this->_bltID}"] =
                 CRM_Core_PseudoConstant::countryIsoCode( $this->_params["billing_country_id-{$this->_bltID}"] );
             
-            $this->_params['year'      ]     = $this->_params['credit_card_exp_date']['Y'];
-            $this->_params['month'     ]     = $this->_params['credit_card_exp_date']['M'];
+            $this->_params['year'      ]     = CRM_Core_Payment_Form::getCreditCardExpirationYear( $this->_params );
+            $this->_params['month'     ]     = CRM_Core_Payment_Form::getCreditCardExpirationMonth( $this->_params );
             $this->_params['ip_address']     = CRM_Utils_System::ipAddress( );
             $this->_params['amount'        ] = $params['fee_amount'];
             $this->_params['amount_level'  ] = $params['amount_level'];
@@ -1199,7 +1199,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
             require_once 'CRM/Core/Payment/Form.php';
             CRM_Core_Payment_Form::mapParams( $this->_bltID, $this->_params, $paymentParams, true );
             
-            $payment =& CRM_Core_Payment::singleton( $this->_mode, $this->_paymentProcessor, $this );
+            $payment = CRM_Core_Payment::singleton( $this->_mode, $this->_paymentProcessor, $this );
             
             $result =& $payment->doDirectPayment( $paymentParams );
             
@@ -1349,12 +1349,12 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
                 require_once 'CRM/Contribute/BAO/Contribution.php';
                 $contributions = array( );
                 if ( $this->_single ) {
-                    $contributions[] =& CRM_Contribute_BAO_Contribution::create( $contributionParams, $ids );
+                    $contributions[] = CRM_Contribute_BAO_Contribution::create( $contributionParams, $ids );
                 } else {
                     $ids = array( );
                     foreach ( $this->_contactIds as $contactID ) {
                         $contributionParams['contact_id'] = $contactID;
-                        $contributions[] =& CRM_Contribute_BAO_Contribution::create( $contributionParams, $ids );
+                        $contributions[] = CRM_Contribute_BAO_Contribution::create( $contributionParams, $ids );
                     }           
                 }
                 
@@ -1372,7 +1372,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         }
 
         //do cleanup line  items if participant edit the Event Fee.
-        if ( ( $this->_lineItem || !isset($params['proceSetId'] ) ) && !$this->_paymentId ) {
+        if ( ( $this->_lineItem || !isset($params['proceSetId'] ) ) && !$this->_paymentId && isset($params['participantid'])  ) {
             require_once 'CRM/Price/BAO/LineItem.php';
             CRM_Price_BAO_LineItem::deleteLineItems( $params['participant_id'], 'civicrm_participant' );
         }
@@ -1407,6 +1407,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         }
         
         $sent = array( );
+        $notSent = array( );
         if ( CRM_Utils_Array::value( 'send_receipt', $params ) ) {
             if ( array_key_exists( $params['from_email_address'], $this->_fromEmails['from_email_id'] ) ) {
                 $receiptFrom = $params['from_email_address'];
@@ -1456,9 +1457,11 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
             if ( $this->_isPaidEvent ) {
                 $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument();
                 if ( ! $this->_mode ) {
-                    $this->assign( 'paidBy',
-                                   CRM_Utils_Array::value( $params['payment_instrument_id'],
-                                                           $paymentInstrument ) );
+                    if ( isset( $params['payment_instrument_id'] ) ) {
+                        $this->assign( 'paidBy',
+                                       CRM_Utils_Array::value( $params['payment_instrument_id'],
+                                                               $paymentInstrument ) );
+                    }
                 }
 
                 $this->assign( 'totalAmount', $contributionParams['total_amount'] );

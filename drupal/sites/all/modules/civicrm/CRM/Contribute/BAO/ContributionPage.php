@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -91,8 +91,12 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                                'entity_id'    => $id );   
         list( $values['custom_pre_id'],
               $customPostIds ) = CRM_Core_BAO_UFJoin::getUFGroupIds( $ufJoinParams );
-        $values['custom_post_id'] = $customPostIds[0];
-
+        
+        if (!empty($customPostIds)) {
+            $values['custom_post_id'] = $customPostIds[0];
+        } else {
+            $values['custom_post_id'] = '';
+        }
         // add an accounting code also
         if ( $values['contribution_type_id'] ) {
             $values['accountingCode'] = CRM_Core_DAO::getFieldValue( 'CRM_Contribute_DAO_ContributionType',
@@ -116,7 +120,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
      */
     static function sendMail( $contactID, &$values, $isTest = false, $returnMessageText = false, $fieldTypes = null ) 
     {
-        require_once "CRM/Core/BAO/UFField.php";
+        require_once 'CRM/Core/BAO/UFField.php';
         $gIds = $params = array( );
         $email = null;
         if ( isset( $values['custom_pre_id'] ) ) {
@@ -174,11 +178,11 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
         if ( CRM_Utils_Array::value( 'is_email_receipt', $values )  || 
              CRM_Utils_Array::value( 'onbehalf_dupe_alert', $values ) || 
              $returnMessageText ) {
-            $template =& CRM_Core_Smarty::singleton( );
+            $template = CRM_Core_Smarty::singleton( );
 
             // get the billing location type
             if ( !array_key_exists('related_contact', $values) ) {
-                $locationTypes =& CRM_Core_PseudoConstant::locationType( );
+                $locationTypes = CRM_Core_PseudoConstant::locationType( );
                 $billingLocationTypeId = array_search( 'Billing',  $locationTypes );
             } else {
                 // presence of related contact implies onbehalf of org case, 
@@ -214,7 +218,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
             if ( $preID = CRM_Utils_Array::value( 'custom_pre_id', $values ) ) {
                 if ( CRM_Utils_Array::value( 'related_contact', $values ) ) {
                     $preProfileTypes = CRM_Core_BAO_UFGroup::profileGroups( $preID );
-                    if ( in_array('Individual', $preProfileTypes ) ) {
+                    if ( in_array('Individual', $preProfileTypes ) || in_array('Contact', $postProfileTypes ) ) {
                         //Take Individual contact ID
                         $userID = CRM_Utils_Array::value( 'related_contact', $values );
                     }
@@ -225,7 +229,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
             if ( $postID = CRM_Utils_Array::value( 'custom_post_id', $values ) ) {
                 if ( CRM_Utils_Array::value( 'related_contact', $values ) ) {
                     $postProfileTypes = CRM_Core_BAO_UFGroup::profileGroups( $postID );
-                    if ( in_array('Individual', $postProfileTypes ) ) {
+                    if ( in_array('Individual', $postProfileTypes ) || in_array('Contact', $postProfileTypes ) ) {
                         //Take Individual contact ID
                         $userID = CRM_Utils_Array::value( 'related_contact', $values );
                     }
@@ -233,15 +237,21 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                 self::buildCustomDisplay( $postID, 'customPost', $userID, $template, $params['custom_post_id'] );
             }
 
+            require_once 'CRM/Contribute/PseudoConstant.php';
+            $title = isset($values['title']) ? $values['title'] : CRM_Contribute_PseudoConstant::contributionPage($values['contribution_page_id']);
+
             // set email in the template here
             $tplParams = array(
-                'email'            => $email,
-                'receiptFromEmail' => CRM_Utils_Array::value( 'receipt_from_email', $values ),
-                'contactID'        => $contactID,
-                'contributionID'   => $values['contribution_id'],
-                'membershipID'     => CRM_Utils_Array::value('membership_id', $values),
-                'lineItem'         => CRM_Utils_Array::value('lineItem',      $values), // CRM-5095
-                'priceSetID'       => CRM_Utils_Array::value('priceSetID',    $values), // CRM-5095
+                'email'               => $email,
+                'receiptFromEmail'    => CRM_Utils_Array::value( 'receipt_from_email', $values ),
+                'contactID'           => $contactID,
+                'contributionID'      => $values['contribution_id'],
+                'contributionOtherID' => CRM_Utils_Array::value('contribution_other_id', $values),
+                'membershipID'        => CRM_Utils_Array::value('membership_id', $values),
+                'lineItem'            => CRM_Utils_Array::value('lineItem',      $values), // CRM-5095
+                'priceSetID'          => CRM_Utils_Array::value('priceSetID',    $values), // CRM-5095
+                'title'               => $title,
+                'isShare'             => CRM_Utils_Array::value('is_share',    $values)
             );
 
             if ( $contributionTypeId = CRM_Utils_Array::value('contribution_type_id', $values ) ) {
@@ -285,7 +295,8 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                                           'entity_table' => 'civicrm_contribution_page',   
                                           'entity_id'    => $values['id'] );   
                 $OnBehalfProfile = CRM_Core_BAO_UFJoin::getUFGroupIds( $ufJoinParams );
-                $profileId       = $OnBehalfProfile[0]; 
+                $profileId       = $OnBehalfProfile[0];
+                $userID = $contactID; 
                 self::buildCustomDisplay( $profileId, 'onBehalfProfile' , $userID, $template,
                                           $params['onbehalf_profile'], $fieldTypes );
             }
@@ -309,7 +320,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                               'to'      => $displayName,
                               'html'    => $html );
             }
-            
+
             if ( $values['is_email_receipt'] ) {
                 $sendTemplateParams['from']    = CRM_Utils_Array::value('receipt_from_name',$values) .' <'. $values['receipt_from_email']. '>';
                 $sendTemplateParams['toName']  = $displayName;
@@ -318,7 +329,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                 $sendTemplateParams['bcc']     = CRM_Utils_Array::value('bcc_receipt', $values);
                 list ($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate($sendTemplateParams);
             }
-
+            
             // send duplicate alert, if dupe match found during on-behalf-of processing.
             if ( CRM_Utils_Array::value( 'onbehalf_dupe_alert', $values ) ) {
                 $sendTemplateParams['groupName']                   = 'msg_tpl_workflow_contribution';
@@ -499,7 +510,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
         
         
         //copy option group and values 
-        require_once "CRM/Core/BAO/OptionGroup.php";
+        require_once 'CRM/Core/BAO/OptionGroup.php';
         $copy->default_amount_id = CRM_Core_BAO_OptionGroup::copyValue('contribution', 
                                                                        $id, 
                                                                        $copy->id, 
@@ -511,7 +522,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
                                                              'entity_table' => 'civicrm_contribution_page'),
                                                       array( 'entity_id'    => $copy->id ) );
         
-        $copyPersonalCampaignPages =& CRM_Core_DAO::copyGeneric( 'CRM_Contribute_DAO_PCPBlock', 
+        $copyPersonalCampaignPages =& CRM_Core_DAO::copyGeneric( 'CRM_PCP_DAO_PCPBlock', 
                                                                  array( 'entity_id'    => $id,
                                                                         'entity_table' => 'civicrm_contribution_page'),
                                                                  array( 'entity_id'    => $copy->id ) );
@@ -590,7 +601,7 @@ WHERE entity_table = 'civicrm_contribution_page'
                            'amount',
                            'membership',
                            'custom',
-                           'thankYou',
+                           'thankyou',
                            'friend',
                            'pcp',
                            'widget',
@@ -602,7 +613,7 @@ WHERE entity_table = 'civicrm_contribution_page'
            amount_block_is_active as amount, 
            civicrm_membership_block.id as membership,
            civicrm_uf_join.id as custom,
-           civicrm_contribution_page.thankyou_title as thankYou,
+           civicrm_contribution_page.thankyou_title as thankyou,
            civicrm_tell_friend.id as friend,
            civicrm_pcp_block.id as pcp,
            civicrm_contribution_widget.id as widget,
@@ -612,7 +623,8 @@ LEFT JOIN  civicrm_membership_block    ON ( civicrm_membership_block.entity_id =
                                             AND civicrm_membership_block.entity_table = 'civicrm_contribution_page'
                                             AND civicrm_membership_block.is_active = 1 )
 LEFT JOIN  civicrm_uf_join             ON ( civicrm_uf_join.entity_id = civicrm_contribution_page.id 
-                                            AND civicrm_uf_join.entity_table = 'civicrm_contribution_page' 
+                                            AND civicrm_uf_join.entity_table = 'civicrm_contribution_page'
+                                            AND module = 'CiviContribute' 
                                             AND civicrm_uf_join.is_active = 1 )
 LEFT JOIN  civicrm_tell_friend         ON ( civicrm_tell_friend.entity_id = civicrm_contribution_page.id 
                                             AND civicrm_tell_friend.entity_table = 'civicrm_contribution_page'

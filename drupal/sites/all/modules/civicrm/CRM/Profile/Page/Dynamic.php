@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -75,7 +75,7 @@ class CRM_Profile_Page_Dynamic extends CRM_Core_Page {
      * Should we bypass permissions
      *
      * @var boolean
-     * @access prootected
+     * @access protected
      */
     protected $_skipPermission;
 
@@ -298,7 +298,7 @@ class CRM_Profile_Page_Dynamic extends CRM_Core_Page {
     function getTemplateFileName() {
         if ( $this->_gid ) {
             $templateFile = "CRM/Profile/Page/{$this->_gid}/Dynamic.tpl";
-            $template     =& CRM_Core_Page::getTemplate( );
+            $template     = CRM_Core_Page::getTemplate( );
             if ( $template->template_exists( $templateFile ) ) {
                 return $templateFile;
             }

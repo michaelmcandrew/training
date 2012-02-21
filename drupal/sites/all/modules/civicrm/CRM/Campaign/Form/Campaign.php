@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -94,9 +94,7 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form
         
         $this->_context = CRM_Utils_Request::retrieve( 'context', 'String', $this );
         
-        if ( $this->_context ) {
-            $this->assign( 'context', $this->_context );
-        }
+        $this->assign( 'context', $this->_context );
         
         $this->_action     = CRM_Utils_Request::retrieve('action', 'String', $this );
         $this->_campaignId = CRM_Utils_Request::retrieve('id', 'Positive', $this );
@@ -283,10 +281,10 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form
         $this->addElement('checkbox', 'is_active', ts('Is Active?') );
         
         $this->addButtons(array(
-                                array ('type'      => 'next',
+                                array ('type'      => 'upload',
                                        'name'      => ts('Save'),
                                        'isDefault' => true),
-                                array ('type'      => 'next',
+                                array ('type'      => 'upload',
                                        'name'      => ts('Save and New'),
                                        'subName'   => 'new'),
                                 array ('type'      => 'cancel',
@@ -380,7 +378,7 @@ class CRM_Campaign_Form_Campaign extends CRM_Core_Form
         }
         
         $buttonName = $this->controller->getButtonName( );
-        if ( $buttonName == $this->getButtonName( 'next', 'new' ) ) {
+        if ( $buttonName == $this->getButtonName( 'upload', 'new' ) ) {
             CRM_Core_Session::setStatus(ts(' You can add another Campaign.'));
             $session->replaceUserContext( CRM_Utils_System::url('civicrm/campaign/add', 'reset=1&action=add' ) );
             

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -494,7 +494,7 @@ class CRM_Mailing_Form_Upload extends CRM_Core_Form
         }
         require_once 'CRM/Core/BAO/Domain.php';
 
-        $domain =& CRM_Core_BAO_Domain::getDomain();
+        $domain = CRM_Core_BAO_Domain::getDomain();
 
         require_once 'CRM/Mailing/BAO/Mailing.php';
         $mailing = new CRM_Mailing_BAO_Mailing();
@@ -502,13 +502,14 @@ class CRM_Mailing_Form_Upload extends CRM_Core_Form
         $mailing->find(true);
 
         $session = CRM_Core_Session::singleton();
-        $values = array('contact_id' => $session->get('userID') );
-        require_once 'api/v2/Contact.php';
-        $contact =& civicrm_contact_get( $values );
+        $values = array( 'contact_id' => $session->get('userID'),
+                         'version'    => 3 );
+        require_once 'api/api.php';
+        $contact = civicrm_api( 'contact', 'get', $values );
         
         //CRM-4524
-        $contact = reset( $contact );
-        
+        $contact = reset( $contact['values'] );
+                
         $verp = array_flip(array(  'optOut', 'reply', 'unsubscribe', 'resubscribe', 'owner'));
         foreach($verp as $key => $value) {
             $verp[$key]++;

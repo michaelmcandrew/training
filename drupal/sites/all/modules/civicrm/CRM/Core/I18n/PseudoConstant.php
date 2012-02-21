@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -55,7 +55,7 @@ class CRM_Core_I18n_PseudoConstant
 
     static function longForShort($short)
     {
-        $longForShortMapping =& self::longForShortMapping();
+        $longForShortMapping = self::longForShortMapping();
         return $longForShortMapping[$short];
     }
 
@@ -71,11 +71,11 @@ class CRM_Core_I18n_PseudoConstant
                 $longForShortMapping[$row['value']] = $row['name'];
             }
             // hand-crafted enforced overrides for language variants
-            $longForShortMapping['zh'] = 'zh_CN';
-            $longForShortMapping['en'] = 'en_US';
-            $longForShortMapping['fr'] = 'fr_FR';
-            $longForShortMapping['pt'] = 'pt_PT';
-            $longForShortMapping['es'] = 'es_ES';
+            $longForShortMapping['zh'] = defined("CIVICRM_LANGUAGE_MAPPING_ZH") ? CIVICRM_LANGUAGE_MAPPING_ZH : 'zh_CN';
+            $longForShortMapping['en'] = defined("CIVICRM_LANGUAGE_MAPPING_EN") ? CIVICRM_LANGUAGE_MAPPING_EN : 'en_US';
+            $longForShortMapping['fr'] = defined("CIVICRM_LANGUAGE_MAPPING_FR") ? CIVICRM_LANGUAGE_MAPPING_FR : 'fr_FR';
+            $longForShortMapping['pt'] = defined("CIVICRM_LANGUAGE_MAPPING_PT") ? CIVICRM_LANGUAGE_MAPPING_PT : 'pt_PT';
+            $longForShortMapping['es'] = defined("CIVICRM_LANGUAGE_MAPPING_ES") ? CIVICRM_LANGUAGE_MAPPING_ES : 'es_ES';
         }
         return $longForShortMapping;
     }

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -66,6 +66,9 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         $this->assign( 'max_reminders'       , CRM_Utils_Array::value( 'max_reminders'        , $this->_values ));
         $this->assign( 'initial_reminder_day', CRM_Utils_Array::value( 'initial_reminder_day' , $this->_values )); 
         CRM_Utils_System::setTitle( CRM_Utils_Array::value( 'thankyou_title', $this->_values ) );
+        // Make the contributionPageID avilable to the template
+        $this->assign( 'contributionPageID', $this->_id );
+        $this->assign( 'isShare', $this->_values['is_share'] );
     }
     
     /**
@@ -227,13 +230,13 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         if ( $this->_pcpId ) {
             if ( $this->_pcpBlock['is_tellfriend_enabled'] ) {
                 $this->assign( 'friendText', ts('Tell a Friend') );
-                $subUrl = "eid={$this->_pcpId}&blockId={$this->_pcpBlock['id']}&page=pcp";
+                $subUrl = "eid={$this->_pcpId}&blockId={$this->_pcpBlock['id']}&pcomponent=pcp";
                 $tellAFriend = true;
             }
         } else if ( CRM_Utils_Array::value( 'is_active', $data ) ) {               
             $friendText = $data['title'];
             $this->assign( 'friendText', $friendText );
-            $subUrl = "eid={$this->_id}&page=contribution";
+            $subUrl = "eid={$this->_id}&pcomponent=contribute";
             $tellAFriend = true;
         }
 
@@ -249,8 +252,10 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         }
         
         $this->freeze();
+
         // can we blow away the session now to prevent hackery
-        
+        // CRM-9491
+        $this->controller->reset( );
     }
 }
 

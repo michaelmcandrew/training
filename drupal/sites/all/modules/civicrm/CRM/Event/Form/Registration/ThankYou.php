@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -152,10 +152,10 @@ class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration
             $this->assign( 'friendText', $friendText );
             if( $this->_action & CRM_Core_Action::PREVIEW ) {
                 $url = CRM_Utils_System::url('civicrm/friend', 
-                                             "eid={$this->_eventId}&reset=1&action=preview&page=event" );
+                                             "eid={$this->_eventId}&reset=1&action=preview&pcomponent=event" );
             } else {
                 $url = CRM_Utils_System::url('civicrm/friend', 
-                                             "eid={$this->_eventId}&reset=1&page=event" );   
+                                             "eid={$this->_eventId}&reset=1&pcomponent=event" );   
             }                    
             $this->assign( 'friendURL', $url );
         }
@@ -172,6 +172,20 @@ class CRM_Event_Form_Registration_ThankYou extends CRM_Event_Form_Registration
         }
         $this->assign( 'isOnWaitlist', $isOnWaitlist );
         $this->assign( 'isRequireApproval', $isRequireApproval );
+
+        // find pcp info
+        require_once "CRM/PCP/DAO/PCPBlock.php";
+        $eventId = $this->_eventId;
+        $dao = new CRM_PCP_DAO_PCPBlock();
+        $dao->entity_table = 'civicrm_event';
+        $dao->entity_id = $eventId;
+        $dao->is_active = 1;
+        $dao->find(true);
+
+        if ( $dao->id ) {
+          $this->assign('pcpLink', CRM_Utils_System::url('civicrm/contribute/campaign', 'action=add&reset=1&pageId=' . $eventId . '&component=event'));
+          $this->assign('pcpLinkText', $dao->link_text);
+        }
         
         // Assign Participant Count to Lineitem Table
         require_once 'CRM/Price/BAO/Set.php';

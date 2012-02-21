@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -35,6 +35,7 @@
  */
 
 require_once 'CRM/Activity/Import/Parser.php';
+require_once 'api/api.php';
 
 /**
  * class to parse activity csv files
@@ -46,7 +47,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
 
     private $_contactIdIndex;
     private $_activityTypeIndex;
-    private $_activityNameIndex;
+    private $_activityLabelIndex;
     private $_activityDateIndex;
 
     /**
@@ -78,8 +79,8 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
         $fields = array_merge( CRM_Activity_BAO_Activity::importableFields( ), 
                                CRM_Activity_BAO_ActivityTarget::import( ) );
         
-        $fields = array_merge( $fields, array( 'activity_name' => array( 'title'         => ts('Activity Type Label' ),
-                                                                         'headerPattern' => '/(activity.)?type label?/i') ) );
+        $fields = array_merge( $fields, array( 'activity_label' => array( 'title'         => ts('Activity Type Label' ),
+                                                                          'headerPattern' => '/(activity.)?type label?/i') ) );
         
         foreach ($fields as $name => $field) {
             $field['type']          = CRM_Utils_Array::value( 'type', $field, CRM_Utils_Type::T_INT );
@@ -95,7 +96,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
         // FIXME: we should do this in one place together with Form/MapField.php
         $this->_contactIdIndex        = -1;
         $this->_activityTypeIndex     = -1;
-        $this->_activityNameIndex     = -1;
+        $this->_activityLabelIndex    = -1;
         $this->_activityDateIndex     = -1;
         
         $index = 0;
@@ -105,8 +106,8 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
             case 'external_identifier':
                 $this->_contactIdIndex        = $index;
                 break;
-            case 'activity_name' :
-                $this->_activityNameIndex     = $index;
+            case 'activity_label' :
+                $this->_activityLabelIndex     = $index;
                 break;
             case 'activity_type_id' :
                 $this->_activityTypeIndex     = $index;
@@ -161,11 +162,11 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
         $index = -1;
         $errorRequired = false;
         
-        if ( $this->_activityTypeIndex > -1 && $this->_activityNameIndex > -1 ) {
+        if ( $this->_activityTypeIndex > -1 && $this->_activityLabelIndex > -1 ) {
             array_unshift($values, ts('Please select either Activity Type ID OR Activity Type Label.'));
             return CRM_Activity_Import_Parser::ERROR;
-        } elseif ( $this->_activityNameIndex > -1 ) {
-            $index = $this->_activityNameIndex;
+        } elseif ( $this->_activityLabelIndex > -1 ) {
+            $index = $this->_activityLabelIndex;
         } elseif ( $this->_activityTypeIndex > -1 ) {
             $index = $this->_activityTypeIndex;
         }
@@ -183,7 +184,6 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
         }
 
         $params =& $this->getActiveFieldParams( );
-        
         
         require_once 'CRM/Import/Parser/Contact.php';
         $errorMessage = null;
@@ -210,7 +210,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
         //date-Format part ends
 
         //checking error in custom data
-        $params['contact_type'] = isset($this->_contactType) ? $this->_contactType : null;
+        $params['contact_type'] = isset($this->_contactType) ? $this->_contactType : 'Activity';
 
         CRM_Import_Parser_Contact::isErrorInCustomData($params, $errorMessage);
 
@@ -242,9 +242,9 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
             return $response;
         }
         $params =& $this->getActiveFieldParams( );
-        $activityName = array_search( 'activity_name',$this->_mapperKeys);
-        if ( $activityName ) {
-            $params = array_merge( $params, array( 'activity_name' => $values[$activityName]) );
+        $activityLabel = array_search( 'activity_label',$this->_mapperKeys);
+        if ( $activityLabel ) {
+            $params = array_merge( $params, array( 'activity_label' => $values[$activityLabel]) );
         }
         //for date-Formats
         $session = CRM_Core_Session::singleton();
@@ -267,9 +267,9 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
             }
         }
         //date-Format part ends
-        require_once 'api/v2/utils.v2.php';
-        $formatError = _civicrm_activity_formatted_param( $params, $params, true );
-        
+        require_once 'api/v3/DeprecatedUtils.php';
+        $formatError = _civicrm_api3_deprecated_activity_formatted_param( $params, $params, true );
+                
         if ( $formatError ) {
             array_unshift( $values, $formatError['error_message'] );
             return CRM_Activity_Import_Parser::ERROR;
@@ -285,9 +285,10 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
             //retrieve contact id using contact dedupe rule.
             //since we are support only individual's activity import.
             $params['contact_type'] = 'Individual';
-            $error = civicrm_check_contact_dedupe( $params );
+            $params['version'] = 3;
+            $error = civicrm_api('CheckContact',  'Dedupe', $params);
             
-            if ( civicrm_duplicate( $error ) ) {
+            if ( CRM_Core_Error::isAPIError( $error, CRM_Core_ERROR::DUPLICATE_CONTACT ) ) {
                 $matchedIDs = explode(',',$error['error_message']['params'][0]);
                 if (count( $matchedIDs) > 1) {
                     array_unshift($values,"Multiple matching contact records detected for this row. The activity was not imported");
@@ -315,6 +316,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser
                 require_once 'CRM/Dedupe/BAO/Rule.php';
                 $fieldsArray = CRM_Dedupe_BAO_Rule::dedupeRuleFields($ruleParams);
                 
+                $disp = null;
                 foreach ( $fieldsArray as $value) {
                     if(array_key_exists(trim($value),$params)) {
                         $paramValue = $params[trim($value)];

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -236,7 +236,7 @@ class CRM_Utils_File {
     function sourceSQLFile( $dsn, $fileName, $prefix = null, $isQueryString = false, $dieOnErrors = true ) {
         require_once 'DB.php';
 
-        $db  =& DB::connect( $dsn );
+        $db  = DB::connect( $dsn );
         if ( PEAR::isError( $db ) ) {
             die( "Cannot open $dsn: " . $db->getMessage( ) );
         }
@@ -253,7 +253,7 @@ class CRM_Utils_File {
         $string = preg_replace("/^#[^\n]*$/m", "\n", $string );
         $string = preg_replace("/^(--[^-]).*/m", "\n", $string );
         
-        $queries  = preg_split('/;$/m', $string);
+        $queries  = preg_split('/;\s*$/m', $string);
         foreach ( $queries as $query ) {
             $query = trim( $query );
             if ( ! empty( $query ) ) {
@@ -382,7 +382,7 @@ HTACCESS;
         static $_path = null;
         if ( ! $_path ) {
             if ( $templateCompileDir == null ) {
-                $config =& CRM_Core_Config::singleton( );
+                $config = CRM_Core_Config::singleton( );
                 $templateCompileDir = $config->templateCompileDir;
             }
             

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.4                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -80,7 +80,10 @@ class CRM_Utils_Migrate_Import {
             if ( isset( $xml->$keyName ) ) {
                 $dao->$keyName = (string ) $xml->$keyName;
                 if ( $dao->find( true ) ) {
-                    CRM_Core_Session::setStatus(ts("Found $keyName, {$dao->$keyName}, {$dao->__table}<p>"));
+                    CRM_Core_Session::setStatus( ts( "Found %1, %2, %3",
+                                                     array( 1 => $keyName, 
+                                                            2 => $dao->$keyName,
+                                                            3 => $dao->__table ) ) . "<br />" );
                     return false;
                 }
             }
@@ -343,7 +346,10 @@ AND        f.column_name = %2
                                      2 => array( $columnName, 'String' ) );
                     $cfID = CRM_Core_DAO::singleValueQuery( $sql, $params );
                     if ( ! $cfID ) {
-                      CRM_Core_Error::fatal(ts("Could not find custom field for {$profileField->field_name}, $tableName, $columnName<p>"));
+                        CRM_Core_Error::fatal( ts( "Could not find custom field for %1, %2, %3",
+                                                   array( 1 => $profileField->field_name,
+                                                          2 => $tableName,
+                                                          3 => $columnName ) ) . "<br />" );
                     }
                     $profileField->field_name = "custom_{$cfID}";
                 }

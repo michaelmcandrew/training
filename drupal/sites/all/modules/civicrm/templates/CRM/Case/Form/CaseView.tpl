@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -153,6 +153,9 @@
 <div id="view-related-cases">
      <div id="related-cases-content"></div>
 </div>
+
+<div class="clear"></div>
+{include file="CRM/Case/Page/CustomDataView.tpl"}            
 
 <div class="crm-accordion-wrapper crm-accordion_title-accordion crm-accordion-closed crm-case-roles-block">
  <div class="crm-accordion-header">
@@ -664,6 +667,7 @@ function addRole() {
 </script>
 {/literal}
 {include file="CRM/Case/Form/ActivityToCase.tpl"}
+{include file="CRM/Case/Form/ActivityChangeStatus.tpl"}
 
 {* pane to display / edit regular tags or tagsets for cases *}
 {if $showTags OR $showTagsets }
@@ -962,6 +966,7 @@ function buildCaseActivities( filterSearch ) {
             "aoColumns"  : columns,
 	    	"bProcessing": true,
             "bJQueryUI": true,
+            "asStripClasses" : [ "odd-row", "even-row" ],
             "sPaginationType": "full_numbers",
             "sDom"       : '<"crm-datatable-pager-top"lfp>rt<"crm-datatable-pager-bottom"ip>',	
             "bServerSide": true,
@@ -1001,12 +1006,15 @@ function setSelectorClass( ) {
     });
 }
 
-function printCaseReport( ){
- 
- 	var dataUrl = {/literal}"{crmURL p='civicrm/case/report/print' q='all=1'}"{literal};
- 	dataUrl     = dataUrl+ '&cid={/literal}{$contactID}{literal}' 
-                      +'&caseID={/literal}{$caseID}{literal}';
-        window.location = dataUrl;
+function printCaseReport( ) {
+
+    var asn = 'standard_timeline';
+    var dataUrl = {/literal}"{crmURL p='civicrm/case/report/print' q='all=1&redact=0' h='0'}"{literal};
+    dataUrl     = dataUrl + '&cid={/literal}{$contactID}{literal}' 
+                  + '&caseID={/literal}{$caseID}{literal}'
+                  + '&asn={/literal}' + asn + '{literal}';
+
+    window.location = dataUrl;
 }
 	
 </script>

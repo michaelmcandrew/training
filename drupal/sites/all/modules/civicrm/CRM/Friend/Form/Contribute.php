@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -85,7 +85,7 @@ class CRM_Friend_Form_Contribute extends CRM_Contribute_Form_ContributionPage
             $defaults['suggested_message'] = ts('Thought you might be interested in learning about and helping this organization. I think they do important work.');
             $defaults['tf_thankyou_text'] = ts('Thanks for telling your friends about us and supporting our efforts. Together we can make a difference.');
             $defaults['tf_title'] = ts('Tell a Friend');
-            $defaults['thankyou_title'] = ts('Thanks for Spreading the Word');
+            $defaults['tf_thankyou_title'] = ts('Thanks for Spreading the Word');
         }
         
         return $defaults;

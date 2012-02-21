@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -139,6 +139,10 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
                                                array( 'no_display' => true,
                                                       'required'   => true   
                                                       ),
+                                               'source_record_id'  => 
+                                               array( 'no_display' => true,
+                                                      'required'   => true   
+                                                      ),
                                                'activity_type_id'  => 
                                                array( 'title'      => ts( 'Activity Type' ),
                                                       'default'    => true,
@@ -157,7 +161,12 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
                                                'status_id'         => 
                                                array( 'title'      => ts( 'Activity Status' ),
                                                       'default'    => true ,
-                                                      'type'       =>  CRM_Utils_Type::T_STRING ), ),
+                                                      'type'       =>  CRM_Utils_Type::T_STRING ),
+                                               'duration'	   =>
+                                               array( 'title'      => ts( 'Duration' ),
+                                                      'type'       => CRM_Utils_Type::T_INT 
+                                                      ),
+                                               ),
                                        'filters' =>   
                                        array( 'activity_date_time'  => 
                                               array( 'default'      => 'this.month',
@@ -432,8 +441,9 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
         $activityStatus = CRM_Core_PseudoConstant::activityStatus();
         $viewLinks      = false;
         $seperator      = CRM_CORE_DAO::VALUE_SEPARATOR;
-        $context        = CRM_Utils_Request::retrieve( 'context', 'String', $this, false, 'report' );
- 
+        $context        = CRM_Utils_Request::retrieve( 'context', 'String', $this, false, 'report' ); 
+        require_once 'CRM/Activity/Selector/Activity.php';
+        
         require_once 'CRM/Core/Permission.php';
         if ( CRM_Core_Permission::check( 'access CiviCRM' ) ) {
             $viewLinks  = true;
@@ -502,18 +512,18 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
                             $cid = $rows[$rowNum]['civicrm_activity_source_contact_id'];
                         }
 
-                        // case activities get a special view link
-                        if ( $rows[$rowNum]['civicrm_case_activity_case_id'] ) {
-                            $url = CRM_Utils_System::url( "civicrm/case/activity/view"  , 
-                                                          'reset=1&cid=' . $cid .
-                                                          '&aid=' . $rows[$rowNum]['civicrm_activity_id'] . '&caseID=' . $rows[$rowNum]['civicrm_case_activity_case_id'] . '&context=' . $context,
-                                                          $this->_absoluteUrl );
-                        } else {
-                            $url = CRM_Utils_System::url( "civicrm/contact/view/activity"  , 
-                                                          'action=view&reset=1&cid=' . $cid .
-                                                          '&id=' . $rows[$rowNum]['civicrm_activity_id'] . '&atype=' . $value . '&context=' . $context ,
-                                                          $this->_absoluteUrl );
-                        }
+                        $actionLinks = 
+                            CRM_Activity_Selector_Activity::actionLinks( $row['civicrm_activity_activity_type_id'],
+                                                                         CRM_Utils_Array::value('civicrm_activity_source_record_id', $rows[$rowNum]),
+                                                                         false,
+                                                                         $rows[$rowNum]['civicrm_activity_id'] );
+                        
+                        $linkValues = array( 'id'  => $rows[$rowNum]['civicrm_activity_id'],
+                                             'cid' => $cid,
+                                             'cxt' => $context
+                                              );
+                        $url = CRM_Utils_System::url( $actionLinks[CRM_Core_Action::VIEW]['url'],
+                                                      CRM_Core_Action::replace( $actionLinks[CRM_Core_Action::VIEW]['qs'], $linkValues ), true);
                         $rows[$rowNum]['civicrm_activity_activity_type_id_link'] = $url;
                         $rows[$rowNum]['civicrm_activity_activity_type_id_hover'] = $onHoverAct;
                     }

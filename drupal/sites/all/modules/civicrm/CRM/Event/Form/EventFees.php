@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -557,8 +557,9 @@ SELECT  id, html_type
             }
         }
 
-        require_once 'CRM/Core/BAO/Preferences.php';
-        $mailingInfo =& CRM_Core_BAO_Preferences::mailingPreferences();
+        require_once 'CRM/Core/BAO/Setting.php';
+        $mailingInfo = CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
+                                                      'mailing_backend' );
         $form->assign( 'outBound_option', $mailingInfo['outBound_option'] );
         $form->assign( 'hasPayment', $form->_paymentId );
     }

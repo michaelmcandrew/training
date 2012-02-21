@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -331,7 +331,7 @@ class CRM_ACL_BAO_ACL extends CRM_ACL_DAO_ACL {
         $result = array();
 
         if ( ! self::$_fieldKeys ) {
-            $fields =& CRM_ACL_DAO_ACL::fields( );
+            $fields = CRM_ACL_DAO_ACL::fields( );
             self::$_fieldKeys = array_keys( $fields );
         }
 
@@ -651,7 +651,7 @@ SELECT $acl.*
     static function check( $str, $contactID ) {
         require_once 'CRM/ACL/BAO/Cache.php';
         
-        $acls =& CRM_ACL_BAO_Cache::build( $contactID );
+        $acls = CRM_ACL_BAO_Cache::build( $contactID );
 
         $aclKeys = array_keys( $acls );
         $aclKeys = implode( ',', $aclKeys );
@@ -671,14 +671,14 @@ SELECT count( a.id )
 ";
         $params  = array( 1 => array( $str, 'String' ) );
 
-        $count =& CRM_Core_DAO::singleValueQuery( $query, $params );
+        $count = CRM_Core_DAO::singleValueQuery( $query, $params );
         return ( $count ) ? true : false;
     }
 
     public static function whereClause( $type, &$tables, &$whereTables, $contactID = null ) {
         require_once 'CRM/ACL/BAO/Cache.php';
 
-        $acls =& CRM_ACL_BAO_Cache::build( $contactID );
+        $acls = CRM_ACL_BAO_Cache::build( $contactID );
         //CRM_Core_Error::debug( "a: $contactID", $acls );
 
         $whereClause = null;
@@ -698,7 +698,7 @@ SELECT   a.operation, a.object_id
 ORDER BY a.object_id
 ";
             
-            $dao =& CRM_Core_DAO::executeQuery( $query );
+            $dao = CRM_Core_DAO::executeQuery( $query );
         
             // do an or of all the where clauses u see
             $ids = array( );
@@ -720,8 +720,9 @@ ORDER BY a.object_id
 SELECT g.*
   FROM civicrm_group g
  WHERE g.id IN ( $ids )
+ AND   g.is_active = 1
 ";
-                $dao =& CRM_Core_DAO::executeQuery( $query );
+                $dao = CRM_Core_DAO::executeQuery( $query );
                 $staticGroupIDs = array();
                 $cachedGroupIDs = array();
                 while ( $dao->fetch( ) ) {
@@ -804,7 +805,7 @@ SELECT g.*
                                   $includedGroups = null ) {
         require_once 'CRM/ACL/BAO/Cache.php';
 
-        $acls =& CRM_ACL_BAO_Cache::build( $contactID );
+        $acls = CRM_ACL_BAO_Cache::build( $contactID );
 
         if ( ! empty( $includedGroups ) &&
              is_array( $includedGroups ) ) {
@@ -827,7 +828,7 @@ SELECT   a.operation, a.object_id
 ORDER BY a.object_id
 ";
             $params = array( 1 => array( $tableName, 'String' ) );
-            $dao =& CRM_Core_DAO::executeQuery( $query, $params );
+            $dao = CRM_Core_DAO::executeQuery( $query, $params );
             while ( $dao->fetch( ) ) {
                 if ( $dao->object_id ) {
                     if ( self::matchType( $type, $dao->operation ) ) {

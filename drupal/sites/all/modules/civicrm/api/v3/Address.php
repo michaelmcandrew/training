@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.3                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2010                                |
  +--------------------------------------------------------------------+
@@ -42,15 +42,13 @@ require_once 'CRM/Core/BAO/Address.php';
  *  Add an Address for a contact
  * 
  * Allowed @params array keys are:
- * {@schema Core/Address.xml}
+ * {@getfields address_create}
  * {@example AddressCreate.php}
  * @return array of newly created tag property values.
  * @access public
  */
 function civicrm_api3_address_create( &$params ) 
 {
-
-   civicrm_api3_verify_mandatory ($params, null, array('location_type_id', 'contact_id'));
 
 	/*
 	 * if street_parsing, street_address has to be parsed into
@@ -82,47 +80,42 @@ function civicrm_api3_address_create( &$params )
 	  * create array for BAO (expects address params in as an
 	  * element in array 'address'
 	  */
-	 $paramsBAO = array( );
-	 $paramsBAO['contact_id'] = $params['contact_id'];
-	 unset ($params['contact_id']);
-	 $paramsBAO['address'][0] = $params;
-	 $addressBAO = CRM_Core_BAO_Address::create($paramsBAO, true);
+
+	 $addressBAO = CRM_Core_BAO_Address::add($params, true);
 	 if (empty( $addressBAO)) {
 		 return civicrm_api3_create_error( "Address is not created or updated ");
 	 } else {
 		 $values = array( );
-		 $values = _civicrm_api3_dao_to_array ($addressBAO[0], $params);
-		 return civicrm_api3_create_success($values, $params,'address',$addressBAO[0]);
+		 $values = _civicrm_api3_dao_to_array ($addressBAO, $params);
+		 return civicrm_api3_create_success($values, $params,'address',$addressBAO);
 	 }
 
+}
+/*
+ * Adjust Metadata for Create action
+ * 
+ * @param array $params array or parameters determined by getfields
+ */
+function _civicrm_api3_address_create_spec(&$params){
+  $params['location_type_id']['api.required'] = 1;
+  $params['contact_id']['api.required'] = 1; 
+  $params['is_primary']['api.default'] = 1;// TODO note this should be changes to a function call that checks if one exists
+  $params['country'] = array('title' => 'Name or 2-letter abbreviation of country. Looked up in civicrm_country table');
 }
 /**
  * Deletes an existing Address
  *
  * @param  array  $params
  * 
- * {@schema Core/Address.xml}
+ * {@getfields address_delete}
  * {@example AddressDelete.php 0}
  * @return boolean | error  true if successfull, error otherwise
  * @access public
  */
 function civicrm_api3_address_delete( &$params ) 
 {
-    civicrm_api3_verify_mandatory ($params,null,array ('id'));
-    $addressID = CRM_Utils_Array::value( 'id', $params );
-
-    require_once 'CRM/Core/DAO/Address.php';
-    $addressDAO = new CRM_Core_DAO_Address();
-    $addressDAO->id = $addressID;
-    if ( $addressDAO->find( ) ) {
-		while ( $addressDAO->fetch() ) {
-			$addressDAO->delete();
-			return civicrm_api3_create_success(1,$params,'activity',$addressDAO);
-		}
-	} else {
-		return civicrm_api3_create_error( 'Could not delete address with id '.$addressID);
-	}
-    
+    return _civicrm_api3_basic_delete(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+     
 }
 
 /**
@@ -135,22 +128,12 @@ function civicrm_api3_address_delete( &$params )
  * @param  array $params  an associative array of name/value pairs.
  *
  * @return  array details of found addresses else error
+ * {@getfields address_get}
  * @access public
  */
 
 function civicrm_api3_address_get(&$params) 
 {   
-    civicrm_api3_verify_one_mandatory($params); 
-	  return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params);
-				
+	  return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params, true,'Address');
 }
 
-
-/*
- * Set defaults used for 'create' action
- * @return array $defaults array of default values
-*/
-
-function _civicrm_api3_address_create_defaults(){
-  return array('is_primary' => 1);
-}

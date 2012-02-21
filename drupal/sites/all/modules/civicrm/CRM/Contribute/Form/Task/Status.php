@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -34,6 +34,7 @@
  */
 
 require_once 'CRM/Contribute/Form/Task.php';
+require_once 'CRM/Contribute/PseudoConstant.php';
 
 /**
  * This class provides the functionality to email a group of
@@ -82,20 +83,6 @@ AND    {$this->_componentClause}";
                                                  CRM_Core_DAO::$_nullArray );
         if ( $count != 0 ) {
             CRM_Core_Error::statusBounce(ts('Please select only online contributions with Pending status.'));
-        }
-
-        // ensure that all contributions are generated online by pay later
-        $query = "
-SELECT DISTINCT( source ) as source
-FROM   civicrm_contribution
-WHERE  {$this->_componentClause}";
-        $dao = CRM_Core_DAO::executeQuery( $query,
-                                           CRM_Core_DAO::$_nullArray );
-        while ( $dao->fetch( ) ) {
-            if ( strpos( $dao->source, ts( 'Online Contribution' ) ) === false &&
-                 strpos( $dao->source, ts( 'Online Event Registration' ) ) === false ) {
-                CRM_Core_Error::statusBounce( "<strong>Update Pending Contribution Status</strong> can only be used for pending online contributions (made using the 'Pay Later' option). The Source for these contributions starts with 'Online ...'. Please de-select any offline contributions and try again." );
-            }
         }
 
         // we have all the contribution ids, so now we get the contact ids
@@ -231,7 +218,7 @@ AND    co.id IN ( $contribIDs )";
      */
     public function postProcess() {    
         $params = $this->controller->exportValues( $this->_name );
-        $statusID = $params['contribution_status_id'];
+        $statusID = CRM_Utils_Array::value( 'contribution_status_id', $params );
 
         require_once 'CRM/Core/Payment/BaseIPN.php';
         $baseIPN = new CRM_Core_Payment_BaseIPN( );
@@ -253,9 +240,9 @@ AND    co.id IN ( $contribIDs )";
             $ids['contribution']      = $row['contribution_id'];
             $ids['contributionRecur'] = null;
             $ids['contributionPage']  = null;
-            $ids['membership']        = $details[$row['contribution_id']]['membership'];
-            $ids['participant']       = $details[$row['contribution_id']]['participant'];
-            $ids['event']             = $details[$row['contribution_id']]['event'];
+            $ids['membership']        = CRM_Utils_Array::value( 'membership', $details[$row['contribution_id']] );
+            $ids['participant']       = CRM_Utils_Array::value( 'participant', $details[$row['contribution_id']] );
+            $ids['event']             = CRM_Utils_Array::value( 'event', $details[$row['contribution_id']] );
 
             if ( ! $baseIPN->validateData( $input, $ids, $objects, false ) ) {
                 CRM_Core_Error::fatal( );
@@ -263,18 +250,22 @@ AND    co.id IN ( $contribIDs )";
 
             $contribution =& $objects['contribution'];
 
-            if ( $statusID == 3 ) {
+            $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus( null, 
+                                                                                       'name' );
+        
+            if ( $statusID == array_search( 'Cancelled', $contributionStatuses ) ) {
                 $baseIPN->cancelled( $objects, $transaction );
                 $transaction->commit( );
                 continue;
-            } else if ( $statusID == 4 ) {
+            } else if ( $statusID == array_search( 'Failed', $contributionStatuses ) ) {
                 $baseIPN->failed( $objects, $transaction );
                 $transaction->commit( );
                 continue;
             }
 
             // status is not pending
-            if ( $contribution->contribution_status_id != 2 ) {
+            if ( $contribution->contribution_status_id != array_search( 'Pending', 
+                                                                        $contributionStatuses ) ) {
                 $transaction->commit( );
                 continue;
             }

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -188,9 +188,14 @@ class CRM_Event_Selector_Search extends CRM_Core_Selector_Base implements CRM_Co
         // type of selector
         $this->_action = $action;
 
-        $this->_query = new CRM_Contact_BAO_Query( $this->_queryParams, null, null, false, false,
-                                                    CRM_Contact_BAO_Query::MODE_EVENT );
-        $this->_query->_distinctComponentClause = " DISTINCT(civicrm_participant.id)";
+        require_once 'CRM/Event/BAO/Query.php';
+        $this->_query = new CRM_Contact_BAO_Query( $this->_queryParams,
+                                                   CRM_Event_BAO_Query::defaultReturnProperties( CRM_Contact_BAO_Query::MODE_EVENT,
+                                                                                                 false ),
+                                                   null, false, false,
+                                                   CRM_Contact_BAO_Query::MODE_EVENT );
+        $this->_query->_distinctComponentClause = " civicrm_participant.id";
+        $this->_query->_groupByComponentClause  = " GROUP BY civicrm_participant.id ";
     }//end of constructor
 
     /**
@@ -425,7 +430,7 @@ class CRM_Event_Selector_Search extends CRM_Core_Selector_Base implements CRM_Co
         if ( ! isset( self::$_columnHeaders ) ) {
             self::$_columnHeaders = array(
                                           array('name'      => ts('Event'),
-                                                'sort'      => 'title',
+                                                'sort'      => 'event_title',
                                                 'direction' => CRM_Utils_Sort::DONTCARE,
                                                 ),
                                           array(

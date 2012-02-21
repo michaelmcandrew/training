@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -297,7 +297,7 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
         $this->assign( 'ruleFields', json_encode( $ruleFields ) );
 
         require_once 'CRM/Event/PseudoConstant.php';
-        $participantStatuses =& CRM_Event_PseudoConstant::participantStatus();
+        $participantStatuses = CRM_Event_PseudoConstant::participantStatus();
         if (in_array('Awaiting approval', $participantStatuses) and in_array('Pending from approval', $participantStatuses) and in_array('Rejected', $participantStatuses)) {
             $this->addElement('checkbox',
                               'requires_approval',

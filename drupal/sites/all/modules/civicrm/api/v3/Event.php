@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -41,24 +41,24 @@
 /**
  * Files required for this package
  */
-require_once 'api/v3/utils.php';
+    require_once 'CRM/Event/BAO/Event.php';
 
 /**
  * Create a Event
  *
  * This API is used for creating a Event
  *
- * @param  array   $params           (reference ) input parameters
+ * @param  array   $params   input parameters
  * Allowed @params array keys are:
- * {@schema Event/Event.xml}
+ * {@getfields event_create}
  *
- * @return array of newly created event property values.
+ * @return array API result Array.
  * @access public
 */
 function civicrm_api3_event_create( $params )
 {
 
-    civicrm_api3_verify_mandatory ($params,'CRM_Event_DAO_Event',array ('start_date','event_type_id','title'));
+    civicrm_api3_verify_mandatory ($params,'CRM_Event_DAO_Event');// to be removed - need to check what's being required
    
     //format custom fields so they can be added
     $value = array();
@@ -78,22 +78,31 @@ function civicrm_api3_event_create( $params )
     return civicrm_api3_create_success($event,$params);
 
 }
-
+/*
+ * Adjust Metadata for Create action
+ * 
+ * The metadata is used for setting defaults, documentation & validation
+ * @param array $params array or parameters determined by getfields
+ */
+function _civicrm_api3_event_create_spec(&$params){
+  $params['event_type_id']['api.required'] =1;;
+  $params['start_date']['api.required'] =1;
+  $params['title']['api.required'] =1;
+}
 
 /**
  * Get Event record.
  *
  *
  * @param  array  $params     an associative array of name/value property values of civicrm_event
- *
+ * {@getfields event_get}
  * @return  Array of all found event property values.
  * @access public
+ * 
  */
 
 function civicrm_api3_event_get( $params )
 {
-
-    civicrm_api3_verify_mandatory($params);
 
     $inputParams            = array( );
     $returnProperties       = array( );
@@ -130,7 +139,8 @@ function civicrm_api3_event_get( $params )
     require_once 'CRM/Core/BAO/CustomGroup.php';
     require_once 'CRM/Event/BAO/Event.php';
     $eventDAO = new CRM_Event_BAO_Event( );
-    $eventDAO->copyValues( $inputParams );
+     _civicrm_api3_dao_set_filter($eventDAO, $inputParams);
+
 
     $event = array();
     if ( !empty( $returnProperties ) ) {
@@ -170,25 +180,19 @@ function civicrm_api3_event_get( $params )
  *
  * @return boolean        true if success, error otherwise
  * @access public
- * 
- * note API has legacy support for 'event_id'
+ *   note API has legacy support for 'event_id'
+ *  {@getfields event_delete}
  */
 function civicrm_api3_event_delete( $params )
 {
 
-    civicrm_api3_verify_one_mandatory($params,null,array('event_id','id'));
-    $eventID = 
-        CRM_Utils_Array::value( 'event_id', $params ) ?
-        CRM_Utils_Array::value( 'event_id', $params ) :
-        CRM_Utils_Array::value( 'id', $params );
-
-    require_once 'CRM/Event/BAO/Event.php';
     return 
-        CRM_Event_BAO_Event::del( $eventID ) ?
+        CRM_Event_BAO_Event::del($params['id'] ) ?
         civicrm_api3_create_success( ) :
         civicrm_api3_create_error( ts( 'Error while deleting event' ) );
 
 }
+/*
 
 /*
  * Function to add 'is_full' & 'available_seats' to the return array. (this might be better in the BAO)

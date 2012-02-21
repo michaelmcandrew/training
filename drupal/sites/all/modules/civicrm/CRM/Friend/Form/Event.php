@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -81,7 +81,7 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent
             $defaults['suggested_message'] = ts('Thought you might be interested in checking out this event. I\'m planning on attending.');
             $defaults['tf_thankyou_text'] = ts('Thanks for spreading the word about this event to your friends.');
             $defaults['tf_title'] = ts('Tell a Friend');
-            $defaults['thankyou_title'] = ts('Thanks for Spreading the Word');
+            $defaults['tf_thankyou_title'] = ts('Thanks for Spreading the Word');
         }
         
         return $defaults;

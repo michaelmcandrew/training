@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -38,7 +38,7 @@ require_once 'CRM/Utils/Hook.php';
 
 class CRM_Utils_Hook_Joomla extends CRM_Utils_Hook {
 
-   static function invoke( $numParams,
+    function invoke( $numParams,
                            &$arg1, &$arg2, &$arg3, &$arg4, &$arg5,
                            $fnSuffix ) {
        // ensure that we are running in a joomla context
@@ -49,7 +49,25 @@ class CRM_Utils_Hook_Joomla extends CRM_Utils_Hook {
            JPluginHelper::importPlugin('civicrm');
            
            $app = JFactory::getApplication();
-           $app->triggerEvent($fnSuffix,array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5));                      
+           // for cli usage
+           if ( get_class($app) == 'JException' ) {
+               $app = JCli::getInstance( );
+           }
+
+           $result = $app->triggerEvent($fnSuffix,array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5));
+           if ( ! empty( $result ) ) {
+               // collapse result returned from hooks
+               // CRM-9XXX
+               $finalResult = array( );
+               foreach ( $result as $res ) {
+                   if ( ! is_array( $res ) ) {
+                       $res = array( $res );
+                   }
+                   $finalResult = array_merge( $finalResult, $res );
+               }
+               $result = $finalResult;
+           }
+           return $result;
        }
    }
 }

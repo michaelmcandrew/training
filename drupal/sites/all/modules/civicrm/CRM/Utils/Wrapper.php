@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -73,8 +73,8 @@ class CRM_Utils_Wrapper
             $mode         = CRM_Utils_Array::value( 'mode',        $arguments );
             $imageUpload  = (bool) CRM_Utils_Array::value( 'imageUpload' , $arguments, false );
             $addSequence  = (bool) CRM_Utils_Array::value( 'addSequence' , $arguments, false );
-            $attachUpload = (bool) CRM_Utils_Array::value( 'attachUpload',   $arguments, false );
-            $ignoreKey    = (bool) CRM_Utils_Array::value( 'ignoreKey'   ,   $arguments, false );
+            $attachUpload = (bool) CRM_Utils_Array::value( 'attachUpload', $arguments, false );
+            $ignoreKey    = (bool) CRM_Utils_Array::value( 'ignoreKey'   , $arguments, false );
         } else {
             $arguments   = array( );
             $mode        = null;
@@ -82,12 +82,12 @@ class CRM_Utils_Wrapper
         }
 
         $this->_controller = new CRM_Core_Controller_Simple( $formName    ,
-                                                              $formLabel   ,
-                                                              $mode        ,
-                                                              $imageUpload ,
-                                                              $addSequence ,
-                                                              $ignoreKey   ,
-                                                              $attachUpload );
+                                                             $formLabel   ,
+                                                             $mode        ,
+                                                             $imageUpload ,
+                                                             $addSequence ,
+                                                             $ignoreKey   ,
+                                                             $attachUpload );
 
         if ( array_key_exists('urlToSession', $arguments) ) {
             if ( is_array($arguments['urlToSession']) ) {
@@ -96,11 +96,13 @@ class CRM_Utils_Wrapper
                     $sessionVar = CRM_Utils_Array::value( 'sessionVar', $params );
                     $type       = CRM_Utils_Array::value( 'type',       $params );
                     $default    = CRM_Utils_Array::value( 'default',    $params );
+                    $abort      = CRM_Utils_Array::value( 'abort',      $params, false );
                     
                     $value = null; 
                     $value = CRM_Utils_Request::retrieve( $urlVar, 
                                                           $type,
                                                           $this->_controller,
+                                                          $abort,
                                                           $default );
                     $this->_controller->set( $sessionVar, $value );
                 }

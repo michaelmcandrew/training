@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -62,6 +62,9 @@ class CRM_Utils_Crypt {
         }
 
         $string = base64_decode( $string );
+        if ( empty( $string ) ) {
+            return $string;
+        }
 
         if ( function_exists( 'mcrypt_module_open' ) &&
              defined( 'CIVICRM_SITE_KEY' ) ) {

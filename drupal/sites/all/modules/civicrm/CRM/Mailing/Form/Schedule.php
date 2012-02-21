@@ -2,7 +2,7 @@
 
  /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.0                                                |
+  | CiviCRM version 4.1                                                |
   +--------------------------------------------------------------------+
   | Copyright CiviCRM LLC (c) 2004-2011                                |
   +--------------------------------------------------------------------+
@@ -119,22 +119,25 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
          } else {
              //FIXME : currently we are hiding save an continue later when
              //search base mailing, we should handle it when we fix CRM-3876
-             $buttons = array( array(  'type'  => 'back',
-                                       'name'  => ts('<< Previous') ),
-                               array(  'type'  => 'next',
-                                       'name'  => ts('Submit Mailing'),
-                                       'spacing' => '&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;',
-                                       'isDefault' => true),
-                               array(  'type'  => 'cancel',
-                                       'name'  => ts('Continue Later') ),
-                               );
-             if ( $this->_searchBasedMailing && $this->get( 'ssID' ) ) {
+             if ( $this->_searchBasedMailing ) {
                  $buttons = array( array(  'type'  => 'back',
                                            'name'  => ts('<< Previous') ),
                                    array(  'type'  => 'next',
                                            'name'  => ts('Submit Mailing'),
                                            'spacing' => '&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;',
                                            'isDefault' => true),
+                                   );
+             } else {
+                 $buttons = array( array(  'type'  => 'back',
+                                           'name'  => ts('<< Previous') ),
+                                   array(  'type'  => 'next',
+                                           'name'  => ts('Submit Mailing'),
+                                           'spacing' => '&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;',
+                                           'isDefault' => true,
+                                           'js'        => array( 'onclick' => "return submitOnce(this,'" . $this->_name . "','" . ts('Processing') ."');" )
+                                           ),
+                                   array(  'type'  => 'cancel',
+                                           'name'  => ts('Continue Later') ),
                                    );
              }
          }
@@ -215,7 +218,7 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
          }
 
          if (CRM_Utils_Date::format( CRM_Utils_Date::processDate( $params['start_date'],
-                                                                  $params['start_date_time'] ) ) < date('YmdHi00') ) {
+                                                                  $params['start_date_time'] ) ) < CRM_Utils_Date::format(date('YmdHi00')) ) {
              return array('start_date' => 
                           ts('Start date cannot be earlier than the current time.'));
          }
@@ -236,7 +239,7 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
         $params['mailing_id'] = $ids['mailing_id'] = $this->_mailingID;
 
         if ( empty( $params['mailing_id'] ) ) {
-            CRM_Core_Error::fatal( );
+            CRM_Core_Error::fatal( ts( 'Could not find a mailing id' ) );
         }
 
         foreach( array( 'now', 'start_date', 'start_date_time' ) as $parameter ) {
@@ -249,6 +252,10 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
         if ( $mailing->find(true) ) {
             $job = new CRM_Mailing_BAO_Job();
             $job->mailing_id = $mailing->id;
+            $job->is_test = 0;
+            if ( $job->find( true ) ) {
+                CRM_Core_Error::fatal( ts( 'A job for this mailing already exists' ) );
+            }
 
             if ( empty($mailing->is_template)) {
                 $job->status = 'Scheduled';
@@ -262,7 +269,7 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
 
             // set approval details if workflow is not enabled 
             if ( ! CRM_Mailing_Info::workflowEnabled( ) ) {
-                $session =& CRM_Core_Session::singleton( );
+                $session = CRM_Core_Session::singleton( );
                 $mailing->approver_id         = $session->get( 'userID' );
                 $mailing->approval_date       = date('YmdHis');
                 $mailing->approval_status_id  = 1; 
@@ -278,7 +285,7 @@ require_once 'CRM/Mailing/BAO/Mailing.php';
             }
  
             // also set the scheduled_id 
-            $session =& CRM_Core_Session::singleton( );
+            $session = CRM_Core_Session::singleton( );
             $mailing->scheduled_id   = $session->get( 'userID' );
             $mailing->scheduled_date = date('YmdHis');
             $mailing->created_date  = CRM_Utils_Date::isoToMysql( $mailing->created_date );

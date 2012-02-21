@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -169,10 +169,14 @@ class CRM_Case_Selector_Search extends CRM_Core_Selector_Base
         // type of selector
         $this->_action = $action;
 
-        $this->_query = new CRM_Contact_BAO_Query( $this->_queryParams, null, null, false, false,
-                                                    CRM_Contact_BAO_Query::MODE_CASE);
+        require_once 'CRM/Case/BAO/Query.php';
+        $this->_query = new CRM_Contact_BAO_Query( $this->_queryParams,
+                                                   CRM_Case_BAO_Query::defaultReturnProperties( CRM_Contact_BAO_Query::MODE_CASE,
+                                                                                                false ),
+                                                   null, false, false,
+                                                   CRM_Contact_BAO_Query::MODE_CASE);
 
-        $this->_query->_distinctComponentClause = " DISTINCT ( civicrm_case.id )";
+        $this->_query->_distinctComponentClause = " civicrm_case.id ";
 		$this->_query->_groupByComponentClause  = " GROUP BY civicrm_case.id ";
     }//end of constructor
 
@@ -329,7 +333,7 @@ class CRM_Case_Selector_Search extends CRM_Core_Selector_Base
              $isDeleted = false;
              if ( $result->case_deleted ) {
                  $isDeleted = true;
-                 $row['case_status_id'] =  $row['case_status_id'].'<br />(deleted)';
+                 $row['case_status_id'] = empty($row['case_status_id']) ? "" : $row['case_status_id']  .'<br />(deleted)';
              }
  
              $scheduledInfo['case_id'][]    = $result->case_id;
@@ -343,7 +347,7 @@ class CRM_Case_Selector_Search extends CRM_Core_Selector_Base
                                                                        'cid' => $result->contact_id,
                                                                        'cxt' => $this->_context ) 
                                                          );
-             $row['moreActions'] = CRM_Core_Action::formLink( $links['moreActions'], 
+             $row['moreActions'] = CRM_Core_Action::formLink( CRM_Utils_Array::value('moreActions',$links), 
                                                               $mask, array( 'id'  => $result->case_id,
                                                                             'cid' => $result->contact_id,
                                                                             'cxt' => $this->_context ),

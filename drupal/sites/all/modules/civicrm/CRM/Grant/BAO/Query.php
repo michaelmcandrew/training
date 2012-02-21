@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -267,7 +267,8 @@ class CRM_Grant_BAO_Query
         return (isset($this->_qill)) ? $this->_qill : "";
     }
    
-    static function defaultReturnProperties( $mode ) 
+    static function defaultReturnProperties( $mode,
+                                             $includeCustomFields = true )
     {
         $properties = null;
         if ( $mode & CRM_Contact_BAO_Query::MODE_GRANT ) {

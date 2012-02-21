@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -57,7 +57,7 @@ class CRM_Member_Form_MembershipType extends CRM_Member_Form
     public function setDefaultValues( ) 
     {
         $defaults = array( );
-        $defaults =& parent::setDefaultValues( );
+        $defaults = parent::setDefaultValues( );
                 
         //finding default weight to be put 
         if ( !isset  ( $defaults['weight'] ) ||( ! $defaults['weight'] ) ) {
@@ -136,7 +136,7 @@ class CRM_Member_Form_MembershipType extends CRM_Member_Form
         if ( !empty( $msgTemplates ) ) $hasMsgTemplates = true;
         
         //Auto-renew Option
-        $paymentProcessor =& CRM_Core_PseudoConstant::paymentProcessor( false, false, 'is_recur = 1');
+        $paymentProcessor = CRM_Core_PseudoConstant::paymentProcessor( false, false, 'is_recur = 1');
         $isAuthorize = false;
         $options = array( );
         $allowAutoRenewMsg = false;
@@ -234,6 +234,8 @@ class CRM_Member_Form_MembershipType extends CRM_Member_Form
             }
         }
         
+        $this->assign( 'membershipRecordsExists', $membershipRecords );
+
         if  ( ($this->_action & CRM_Core_Action::UPDATE) && $reminderDay ) {
             $renewMessage     = array();
             $returnProperties = array( 'renewal_msg_id', 'renewal_reminder_day' );

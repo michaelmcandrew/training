@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -212,7 +212,7 @@ class CRM_Contact_Form_Task_AddToGroup extends CRM_Contact_Form_Task {
             $groupParams['title'      ] = $params['title'];
             $groupParams['description'] = $params['description'];
             $groupParams['visibility' ] = "User and User Admin Only";
-            if ( is_array( $params['group_type'] ) ) {
+            if ( array_key_exists('group_type', $params) && is_array( $params['group_type'] ) ) {
                 $groupParams['group_type'] =
                     CRM_Core_DAO::VALUE_SEPARATOR . 
                     implode( CRM_Core_DAO::VALUE_SEPARATOR,
@@ -224,13 +224,13 @@ class CRM_Contact_Form_Task_AddToGroup extends CRM_Contact_Form_Task {
             $groupParams['is_active'  ] = 1;
            
             require_once 'CRM/Contact/BAO/Group.php';
-            $createdGroup   =& CRM_Contact_BAO_Group::create( $groupParams );
+            $createdGroup   = CRM_Contact_BAO_Group::create( $groupParams );
             $groupID        = $createdGroup->id;
             $groupName      = $groupParams['title'];
              
         } else {
             $groupID   = $params['group_id'];
-            $group   =& CRM_Core_PseudoConstant::group( );
+            $group   = CRM_Core_PseudoConstant::group( );
             $groupName = $group[$groupID];
             
         }

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -206,7 +206,11 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
         }
         
         if ( $required ) {
-            $error = $this->addRule($name, ts('%1 is a required field.', array(1 => $label)) , 'required');
+            if ( $type == 'file' ) {
+                $error = $this->addRule($name, ts('%1 is a required field.', array(1 => $label)) , 'uploadedfile');
+            } else {
+                $error = $this->addRule($name, ts('%1 is a required field.', array(1 => $label)) , 'required');
+            }
             if (HTML_QuickForm::isError($error)) {
                 CRM_Core_Error::fatal(HTML_QuickForm::errorMessage($element));
             }
@@ -788,8 +792,10 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
     {
         // 1. Get configuration option for editor (tinymce, ckeditor, pure textarea)
         // 2. Based on the option, initialise proper editor
-        require_once 'CRM/Core/BAO/Preferences.php';
-        $editor = strtolower( CRM_Utils_Array::value( CRM_Core_BAO_Preferences::value( 'editor_id' ),
+        require_once 'CRM/Core/BAO/Setting.php';
+        $editorID = CRM_Core_BAO_Setting::getItem( CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+                                                   'editor_id' );
+        $editor = strtolower( CRM_Utils_Array::value( $editorID,
                                                       CRM_Core_PseudoConstant::wysiwygEditor( )) );
         if ( !$editor || $forceTextarea ) {
             $editor = 'textarea';
@@ -801,7 +807,10 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
         if ( $editor == 'drupal default editor' ) {
             $editor = 'drupalwysiwyg';
         }
- 
+        
+        //lets add the editor as a attribute
+        $attributes['editor'] = $editor;
+
         $this->addElement( $editor, $name, $label, $attributes );
         $this->assign('editor', $editor);
     }    
@@ -1093,6 +1102,20 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
             $defaultCurrency = $config->defaultCurrency;
         }
         $this->setDefaults( array( $name => $defaultCurrency ) );
+    }
+
+    function removeFileRequiredRules( $elementName ) {
+        $this->_required = array_diff($this->_required, array($elementName) );
+        if ( isset( $this->_rules[$elementName] ) ) {
+            foreach ( $this->_rules[$elementName] as $index => $ruleInfo ) {
+                if ( $ruleInfo['type'] == 'uploadedfile' ) {
+                    unset($this->_rules[$elementName][$index]);
+                }
+            }
+            if ( empty( $this->_rules[$elementName] ) ) {
+                unset( $this->_rules[$elementName] );
+            }
+        }
     }
 
 }

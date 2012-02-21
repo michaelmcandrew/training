@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -63,8 +63,10 @@ WHERE  cacheKey     = %3 AND
             $mergeId = CRM_Core_DAO::singleValueQuery( $query, $params );
         }
         
-        $pos = array( );
+        $pos = array( 'foundEntry' => 0 );
         if ( $mergeId ) {
+            $pos['foundEntry'] = 1;
+
             if ( $where ) $where = " AND {$where}";
             $p         = array( 1 => array( $mergeId, 'Integer' ),
                                 2 => array( $cacheKey,'String' ) );
@@ -91,7 +93,7 @@ WHERE  cacheKey     = %3 AND
                 $pos['next']['mergeId'] = $dao->id;
                 $pos['next']['data']    = $dao->data;
             }
-        }   
+        }
         return $pos;
     }
 
@@ -171,10 +173,10 @@ DELETE     pn, c
 FROM       civicrm_cache c
 INNER JOIN civicrm_prevnext_cache pn ON c.path = pn.cacheKey
 WHERE      c.group_name = %1
-AND        c.created_date < date_sub( NOW( ), INTERVAL $cacheTimeIntervalDays day )
+AND        c.created_date < date_sub( NOW( ), INTERVAL %2 day )
 ";
         $params = array( 1 => array( 'CiviCRM Search PrevNextCache', 'String' ),
                          2 => array( $cacheTimeIntervalDays, 'Integer' ) );
-        CRM_Core_DAO::executeQuery( $sql );
+        CRM_Core_DAO::executeQuery( $sql, $params );
     }
 }

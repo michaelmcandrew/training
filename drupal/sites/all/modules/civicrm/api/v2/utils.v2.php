@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -194,7 +194,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     
     //first add core contact values since for other Civi modules they are not added
     require_once 'CRM/Contact/BAO/Contact.php';
-    $contactFields =& CRM_Contact_DAO_Contact::fields( );
+    $contactFields = CRM_Contact_DAO_Contact::fields( );
     _civicrm_store_values( $contactFields, $values, $params );
     
     if (isset($values['contact_type'])) {
@@ -207,7 +207,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
     
     if ( isset($values['individual_prefix']) ) {
-        if ( $params['prefix_id'] ) {
+        if ( CRM_Utils_Array::value( 'prefix_id', $params ) ) {
             $prefixes = array( );
             $prefixes = CRM_Core_PseudoConstant::individualPrefix( );
             $params['prefix'] = $prefixes[$params['prefix_id']];
@@ -218,7 +218,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
 
     if (isset($values['individual_suffix'])) {
-        if ( $params['suffix_id'] ) {
+        if ( CRM_Utils_Array::value( 'suffix_id', $params ) ) {
             $suffixes = array( );
             $suffixes = CRM_Core_PseudoConstant::individualSuffix( );
             $params['suffix'] = $suffixes[$params['suffix_id']];
@@ -230,7 +230,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     
     //CRM-4575
     if ( isset( $values['email_greeting'] ) ) {
-        if ( $params['email_greeting_id'] ) {
+        if ( CRM_Utils_Array::value( 'email_greeting_id', $params ) ) {
             $emailGreetings = array( );
             $emailGreetingFilter = array( 'contact_type'  => CRM_Utils_Array::value('contact_type', $params),
                                           'greeting_type' => 'email_greeting' );
@@ -244,7 +244,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
     
     if ( isset($values['postal_greeting'] ) ) {
-        if ( $params['postal_greeting_id'] ) {
+        if ( CRM_Utils_Array::value( 'postal_greeting_id', $params ) ) {
             $postalGreetings = array( );
             $postalGreetingFilter = array( 'contact_type'  => CRM_Utils_Array::value('contact_type', $params),
                                            'greeting_type' => 'postal_greeting' );
@@ -257,7 +257,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
     
     if ( isset($values['addressee'] ) ) {
-        if ( $params['addressee_id'] ) {
+        if ( CRM_Utils_Array::value( 'addressee_id', $params ) ) {
             $addressee = array( );
             $addresseeFilter = array( 'contact_type'  => CRM_Utils_Array::value('contact_type', $params),
                                       'greeting_type' => 'addressee' );
@@ -270,7 +270,7 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
     
     if ( isset($values['gender']) ) {
-        if ( $params['gender_id'] ) {
+        if ( CRM_Utils_Array::value( 'gender_id', $params ) ) {
             $genders = array( );
             $genders = CRM_Core_PseudoConstant::gender( );
             $params['gender'] = $genders[$params['gender_id']];
@@ -349,8 +349,8 @@ function _civicrm_add_formatted_param(&$values, &$params)
     }
     
     /* Check for custom field values */
-    if ($fields['custom'] == null) {
-        $fields['custom'] =& CRM_Core_BAO_CustomField::getFields( $values['contact_type'] );
+    if ( !CRM_Utils_Array::value( 'custom' , $fields ) ) {
+        $fields['custom'] = CRM_Core_BAO_CustomField::getFields( CRM_Utils_Array::value( 'contact_type' , $values ) );
     }
     
     foreach ($values as $key => $value) {
@@ -424,7 +424,7 @@ function _civicrm_add_formatted_location_blocks( &$values, &$params )
     
     if ( !array_key_exists( 'Address', $fields ) ) {
         require_once 'CRM/Core/DAO/Address.php';
-        $fields['Address'] =& CRM_Core_DAO_Address::fields( );
+        $fields['Address'] = CRM_Core_DAO_Address::fields( );
     }
     _civicrm_store_values( $fields['Address'], $values, $params['address'][$addressCnt] );
     
@@ -692,7 +692,7 @@ function _civicrm_check_required_fields( &$params, $daoName, $throwException = f
  */
 function _civicrm_participant_formatted_param( &$params, &$values, $create=false) 
 {
-    $fields =& CRM_Event_DAO_Participant::fields( );
+    $fields = CRM_Event_DAO_Participant::fields( );
     _civicrm_store_values( $fields, $params, $values );
     
     require_once 'CRM/Core/OptionGroup.php';
@@ -819,7 +819,7 @@ function _civicrm_contribute_formatted_param( &$params, &$values, $create=false 
 {
     // copy all the contribution fields as is
    
-    $fields =& CRM_Contribute_DAO_Contribution::fields( );
+    $fields = CRM_Contribute_DAO_Contribution::fields( );
       
     _civicrm_store_values( $fields, $params, $values );
 
@@ -1138,7 +1138,7 @@ function _civicrm_contribute_formatted_param( &$params, &$values, $create=false 
 function _civicrm_membership_formatted_param( &$params, &$values, $create=false) 
 {
     require_once "CRM/Member/DAO/Membership.php";
-    $fields =& CRM_Member_DAO_Membership::fields( );
+    $fields = CRM_Member_DAO_Membership::fields( );
 
     _civicrm_store_values( $fields, $params, $values );
     
@@ -1230,7 +1230,7 @@ function _civicrm_membership_formatted_param( &$params, &$values, $create=false)
  */
 function _civicrm_activity_formatted_param( &$params, &$values, $create=false) 
 {
-    $fields =& CRM_Activity_DAO_Activity::fields( );
+    $fields = CRM_Activity_DAO_Activity::fields( );
     _civicrm_store_values( $fields, $params, $values );
     
     require_once 'CRM/Core/OptionGroup.php';
@@ -1273,7 +1273,7 @@ function civicrm_check_contact_dedupe( &$params ) {
         $cIndieFields = $cTempIndieFields;
 
         require_once "CRM/Core/BAO/LocationType.php";
-        $defaultLocation =& CRM_Core_BAO_LocationType::getDefault();
+        $defaultLocation = CRM_Core_BAO_LocationType::getDefault();
 
         //set the value to default location id else set to 1
         if ( !$defaultLocationId = (int)$defaultLocation->id ) $defaultLocationId = 1;

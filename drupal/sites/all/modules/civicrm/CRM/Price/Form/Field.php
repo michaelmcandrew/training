@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -122,7 +122,7 @@ class CRM_Price_Form_Field extends CRM_Core_Form
         // is it an edit operation ?
         if ( isset( $this->_fid ) ) {
             $params = array( 'id' => $this->_fid );
-            $this->assign( 'id',$this->_fid );
+            $this->assign( 'fid',$this->_fid );
             CRM_Price_BAO_Field::retrieve( $params, $defaults );
             $this->_sid = $defaults['price_set_id'];
             
@@ -480,17 +480,25 @@ class CRM_Price_Form_Field extends CRM_Core_Form
                     $_flagOption = $_emptyRow = 0;
                    
                 }
-                if( !empty( $memTypesIDS )){
-                    $ids = implode(',', $memTypesIDS);
-                    $count = CRM_Price_BAO_Set::getMembershipCount($ids);
-                    foreach( $count as $id => $occurance ) {
-                        if ($occurance > 1) {
-                            $errors['_qf_default'] = ts( 'You have selected multiple memberships for the same organization or entity. Please review your selections and choose only one membership per entity.' );
+                
+                if( !empty( $memTypesIDS ) ){
+                    require_once 'CRM/Member/BAO/MembershipType.php';
+                    $foundDuplicate = false;
+                    $orgIds = array();
+                    foreach( $memTypesIDS as $key => $val ) { 
+                        $org = CRM_Member_BAO_MembershipType::getMembershipTypeOrganization( $val );
+                        if ( in_array($org[$val],$orgIds) ) {
+                            $foundDuplicate = true;
+                            break;
                         }
+                        $orgIds[$val] = $org[$val];
+                    }
+                    if ( $foundDuplicate  ) {
+                        $errors['_qf_default'] = ts( 'You have selected multiple memberships for the same organization or entity. Please review your selections and choose only one membership per entity.' );
                     }
                 }
                 $_showHide->addToTemplate();    
-            
+                
                 if ( $countemptyrows == 11 ) {
                     $errors['option_label[1]'] = 
                         $errors['option_amount[1]'] = 

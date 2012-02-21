@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -88,10 +88,11 @@ class CRM_Contact_Form_Task_AddToTag extends CRM_Contact_Form_Task {
     static function formRule( $form, $rule) {
         $errors =array();
         if ( empty( $form['tag'] ) && empty( $form['contact_taglist'] ) ) {
-            $errors['_qf_default'] = "Please select atleast one tag.";
+            $errors['_qf_default'] = ts( "Please select at least one tag." );
         }
         return $errors;
     }
+
     /**
      * process the form after the input has been submitted and validated
      *

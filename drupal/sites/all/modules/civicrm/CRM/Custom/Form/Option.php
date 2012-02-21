@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -119,10 +119,13 @@ class CRM_Custom_Form_Option extends CRM_Core_Form
             if ( $fieldDefaults['html_type'] == 'CheckBox' 
                  || $fieldDefaults['html_type'] == 'Multi-Select' 
                  || $fieldDefaults['html_type'] == 'AdvMulti-Select' ) {
-                $defaultCheckValues = explode( CRM_Core_DAO::VALUE_SEPARATOR,
-                                               substr( $fieldDefaults['default_value'], 1, -1 ) );
-                if ( in_array( $defaults['value'], $defaultCheckValues ) ) 
-                    $defaults['default_value'] = 1;
+                if ( CRM_Utils_Array::value( 'default_value', $fieldDefaults ) ) {         
+                    $defaultCheckValues = explode( CRM_Core_DAO::VALUE_SEPARATOR,
+                                                   substr( $fieldDefaults['default_value'], 1, -1 ) );
+                    if ( in_array( $defaults['value'], $defaultCheckValues ) ) { 
+                        $defaults['default_value'] = 1;
+                    }
+                }
             } else {
                 if( CRM_Utils_Array::value( 'default_value', $fieldDefaults ) == CRM_Utils_Array::value( 'value', $defaults ) ) {
                     $defaults['default_value'] = 1;
@@ -295,7 +298,7 @@ SELECT data_type
   FROM civicrm_custom_field
  WHERE id = %1";
         $params = array( 1 => array( $fieldId, 'Integer' ) );
-        $dao =& CRM_Core_DAO::executeQuery( $query, $params );
+        $dao = CRM_Core_DAO::executeQuery( $query, $params );
         if ( $dao->fetch( ) ) {
             switch ( $dao->data_type ) {
             case 'Int':
@@ -372,6 +375,14 @@ SELECT count(*)
         // store the submitted values in an array
         $params = $this->controller->exportValues('Option');
 
+        if ($this->_action == CRM_Core_Action::DELETE) {
+            $fieldValues = array( 'option_group_id' => $this->_optionGroupID );
+            $wt = CRM_Utils_Weight::delWeight('CRM_Core_DAO_OptionValue', $this->_id, $fieldValues);
+            CRM_Core_BAO_CustomOption::del($this->_id);
+            CRM_Core_Session::setStatus( ts('Your multiple choice option has been deleted') );
+            return;
+        }
+
         // set values for custom field properties and save
         require_once 'CRM/Core/DAO/OptionValue.php';
         require_once 'CRM/Utils/String.php';
@@ -382,14 +393,6 @@ SELECT count(*)
         $customOption->value         = $params['value'];
         $customOption->is_active     = CRM_Utils_Array::value( 'is_active', $params, false );
        
-        if ($this->_action == CRM_Core_Action::DELETE) {
-            $fieldValues = array( 'option_group_id' => $this->_optionGroupID );
-            $wt = CRM_Utils_Weight::delWeight('CRM_Core_DAO_OptionValue', $this->_id, $fieldValues);
-            CRM_Core_BAO_CustomOption::del($this->_id);
-            CRM_Core_Session::setStatus(ts('Your multiple choice option has been deleted', array(1 => $customOption->label)));
-            return;
-        }
-
         $oldWeight = null;
         if ($this->_id) {
             $customOption->id = $this->_id;

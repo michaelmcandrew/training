@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -367,7 +367,44 @@ class CRM_Utils_Array {
             }
         }
         return true;
-    }    
+    }
+    /**
+     * Function to determine how many levels in array for multidimensional arrays
+     * @param array $array
+     * 
+     * @return integer $levels containing number of levels in array
+     * @static
+     */
+    static function getLevelsArray( $array ) {
+		if ( !is_array( $array ) ) {
+			return 0;
+		}
+		$jsonString = json_encode( $array );
+		$parts = explode( "}", $jsonString);
+		$max = 0;
+		foreach ( $parts as $part ) {
+			$countLevels = substr_count( $part, "{");
+			if ( $countLevels > $max ) {
+				$max = $countLevels;
+			}
+		}
+		return $max;
+	}
+	
+    /**
+     * Function to sort an associative array of arrays by an attribute using natural string compare
+     * @param array $array Array to be sorted
+     * @param string $field Name of the attribute you want to sort by
+     * 
+     * @return array $array Sorted array
+     * @static
+     */
+	static function crmArraySortByField($array, $field) {
+        $code = "return strnatcmp(\$a['$field'], \$b['$field']);";
+        uasort($array, create_function('$a,$b', $code));
+        return $array;
+    }
+    
 }
 
 

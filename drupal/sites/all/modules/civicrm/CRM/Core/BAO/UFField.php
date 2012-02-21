@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -292,7 +292,7 @@ class CRM_Core_BAO_UFField extends CRM_Core_DAO_UFField
                         WHERE  civicrm_custom_field.custom_group_id = civicrm_custom_group.id
                           AND  civicrm_custom_group.id = %1";
         $p = array( 1 => array( $customGroupId, 'Integer' ) );
-        $dao =& CRM_Core_DAO::executeQuery($queryString, $p);
+        $dao = CRM_Core_DAO::executeQuery($queryString, $p);
         
         while ($dao->fetch()) {
             //enable/ disable profile
@@ -616,7 +616,7 @@ SELECT ufg.id as id
    AND ufj.module = 'User Registration'
    AND ufg.is_active = 1 ";
 
-        $ufGroup =& CRM_Core_DAO::executeQuery( $query );
+        $ufGroup = CRM_Core_DAO::executeQuery( $query );
         
         $fields = array( );
         $validProfiles = array( 'Individual', 'Organization', 'Household', 'Contribution' );

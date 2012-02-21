@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -108,10 +108,12 @@ class CRM_Utils_Token
         if (self::$_requiredTokens == null) {
             self::$_requiredTokens = array (    
                                             'domain.address' => ts("Domain address - displays your organization's postal address."),
-                                            'action.optOutUrl'  =>
+                                            'action.optOutUrl or action.subscribeUrl'  =>
                                             array(
-                                                  'action.optOut'    => ts("'Opt out via email' - displays an email address for recipients to opt out of receiving emails from your organization."), 
-                                                  'action.optOutUrl' => ts("'Opt out via web page' - creates a link for recipients to click if they want to opt out of receiving emails from your organization. Alternatively, you can include the 'Opt out via email' token."), 
+                                                  'action.optOut'      => ts("'Opt out via email' - displays an email address for recipients to opt out of receiving emails from your organization."), 
+                                                  'action.optOutUrl'   => ts("'Opt out via web page' - creates a link for recipients to click if they want to opt out of receiving emails from your organization. Alternatively, you can include the 'Opt out via email' token."),
+                                                  'action.unsubscribe' => ts("'Unsubscribe via email' - displays an email address for recipients to unsubscribe from the specific mailing list used to send this message."),
+                                                  'action.unsubscribe' => ts("'Unsubscribe via web page' - creates a link for recipients to unsubscribe from the specific mailing list used to send this message. Alternatively, you can include the 'Unsubscribe via email' token or one of the Opt-out tokens."),
                                                   ),
                                             );
         }
@@ -318,7 +320,7 @@ class CRM_Utils_Token
             if ($cfID = CRM_Core_BAO_CustomField::getKeyID($token)) {
                 // only generate cv if we need it
                 if ( $cv === null ) {
-                    $cv =& CRM_Core_BAO_CustomValue::getContactValues($org['contact_id']);
+                    $cv = CRM_Core_BAO_CustomValue::getContactValues($org['contact_id']);
                 }
                 foreach ($cv as $cvFieldID => $value ) {
                     if ($cvFieldID == $cfID) {
@@ -574,12 +576,15 @@ class CRM_Utils_Token
         if (!in_array($token,self::$_tokens['contact'])) {
             $value = "{contact.$token}";
         } else if ( $token == 'checksum' ) {
-            require_once 'CRM/Contact/BAO/Contact/Utils.php';
-            $cs = CRM_Contact_BAO_Contact_Utils::generateChecksum( $contact['contact_id'],
-                                                                   null,
-                                                                   null,
-                                                                   $contact['hash'] );
-            $value = "cs={$cs}";
+            $hash = CRM_Utils_Array::value( 'hash', $contact );
+            if ( $hash ) {
+                require_once 'CRM/Contact/BAO/Contact/Utils.php';
+                $cs = CRM_Contact_BAO_Contact_Utils::generateChecksum( $contact['contact_id'],
+                                                                       null,
+                                                                       null,
+                                                                       $hash );
+                $value = "cs={$cs}";
+            }
         } else {
             $value = CRM_Utils_Array::retrieveValueRecursive($contact, $token);
         }
@@ -821,7 +826,7 @@ class CRM_Utils_Token
      * @access public
      * @static
      */
-    public static function &replaceComponentTokens( &$str, $contact, $components, $escapeSmarty = false )
+    public static function &replaceComponentTokens( &$str, $contact, $components, $escapeSmarty = false , $returnEmptyToken = true )
     {
         if ( !is_array($components) || empty($contact) ) {
             return $str;
@@ -835,10 +840,238 @@ class CRM_Utils_Token
             foreach ( $tokens as $token ) {
                 if ( self::token_match( $name, $token, $str ) && isset( $contact[$name.'.'.$token] ) ) {
                     self::token_replace( $name, $token, $contact[$name.'.'.$token], $str, $escapeSmarty );    
+                } elseif( !$returnEmptyToken ){
+                    //replacing empty token 
+                    self::token_replace( $name, $token, "", $str, $escapeSmarty );
                 }
             }
         }  
         return $str;
+    }
+
+    /**
+     * Get array of string tokens
+     *     
+     * @param  $string the input string to parse for tokens
+     *
+     * @return $tokens array of tokens mentioned in field
+     * @access public
+     * @static
+     */
+    function getTokens( $string ) 
+    {
+        $matches = array( );
+        $tokens  = array( );
+        preg_match_all( '/(?<!\{|\\\\)\{(\w+\.\w+)\}(?!\})/',
+                        $string,
+                        $matches,
+                        PREG_PATTERN_ORDER);
+        
+        if ( $matches[1] ) {
+            foreach ( $matches[1] as $token ) {
+                list($type,$name) = preg_split( '/\./', $token, 2 );
+                if ( $name && $type ) {
+                    if ( ! isset( $tokens[$type] ) ) {
+                        $tokens[$type] = array( );
+                    }
+                    $tokens[$type][] = $name;
+                }
+            }
+        }
+        return $tokens;
+    }
+
+    /**
+     * gives required details of contacts in an indexed array format so we
+     * can iterate in a nice loop and do token evaluation
+     *
+     * @param  array   $contactIds       of conatcts
+     * @param  array   $returnProperties of required properties
+     * @param  boolean $skipOnHold       don't return on_hold contact info also.
+     * @param  boolean $skipDeceased     don't return deceased contact info.
+     * @param  array   $extraParams      extra params
+     * @param  array   $tokens           the list of tokens we've extracted from the content
+     *
+     * @return array
+     * @access public
+     * @static
+     */
+    function getTokenDetails($contactIDs,
+                             $returnProperties = null,
+                             $skipOnHold = true,
+                             $skipDeceased = true,
+                             $extraParams = null,
+                             $tokens = array( ),
+                             $className = null ) 
+    {
+        if ( empty( $contactIDs ) ) {
+            // putting a fatal here so we can track if/when this happens
+            CRM_Core_Error::fatal( );
+        }
+
+        $params = array( );
+        require_once 'CRM/Core/Form.php';
+        foreach ( $contactIDs  as $key => $contactID ) {
+            $params[] = array( CRM_Core_Form::CB_PREFIX . $contactID,
+                               '=', 1, 0, 0);
+        }
+        
+        // fix for CRM-2613
+        if ( $skipDeceased ) {
+            $params[] = array( 'is_deceased', '=', 0, 0, 0 );
+        }
+        
+        //fix for CRM-3798
+        if ( $skipOnHold ) {
+            $params[] = array( 'on_hold', '=', 0, 0, 0 );
+        }
+        
+        if ( $extraParams ) {
+            $params = array_merge( $params, $extraParams );
+        }
+            
+        // if return properties are not passed then get all return properties
+        if ( empty( $returnProperties ) ) {
+            require_once 'CRM/Contact/BAO/Contact.php';
+            $fields = array_merge( array_keys(CRM_Contact_BAO_Contact::exportableFields( ) ),
+                                   array( 'display_name', 'checksum', 'contact_id'));
+            foreach( $fields as $key => $val) {
+                $returnProperties[$val] = 1;
+            }
+        }
+
+        $custom = array( );
+        require_once 'CRM/Core/BAO/CustomField.php'; 
+        foreach ( $returnProperties as $name => $dontCare ) {
+            $cfID = CRM_Core_BAO_CustomField::getKeyID( $name );
+            if ( $cfID ) {
+                $custom[] = $cfID;
+            }
+        }
+                
+        //get the total number of contacts to fetch from database.
+        $numberofContacts = count( $contactIDs );
+
+
+        require_once 'CRM/Contact/BAO/Query.php';
+        $query   = new CRM_Contact_BAO_Query( $params, $returnProperties );
+
+        $details = $query->apiQuery( $params, $returnProperties, NULL, NULL, 0, $numberofContacts );
+
+        $contactDetails =& $details[0];
+                
+        foreach ( $contactIDs as $key => $contactID ) {
+            if ( array_key_exists( $contactID, $contactDetails ) ) {
+                if ( CRM_Utils_Array::value( 'preferred_communication_method', $returnProperties ) == 1 
+                     && array_key_exists( 'preferred_communication_method', $contactDetails[$contactID] ) ) {
+                    require_once 'CRM/Core/PseudoConstant.php';
+                    $pcm = CRM_Core_PseudoConstant::pcm();
+                    
+                    // communication Prefferance
+                    require_once 'CRM/Core/BAO/CustomOption.php';
+                    $contactPcm = explode(CRM_Core_DAO::VALUE_SEPARATOR,
+                                          $contactDetails[$contactID]['preferred_communication_method']);
+                    $result = array( );
+                    foreach ( $contactPcm as $key => $val) {
+                        if ($val) {
+                            $result[$val] = $pcm[$val];
+                        } 
+                    }
+                    $contactDetails[$contactID]['preferred_communication_method'] = implode( ', ', $result );
+                }
+                
+                foreach ( $custom as $cfID ) {
+                    if ( isset ( $contactDetails[$contactID]["custom_{$cfID}"] ) ) {
+                        $contactDetails[$contactID]["custom_{$cfID}"] = 
+                            CRM_Core_BAO_CustomField::getDisplayValue( $contactDetails[$contactID]["custom_{$cfID}"],
+                                                                       $cfID, $details[1] );
+                    }
+                }
+                
+                //special case for greeting replacement
+                foreach ( array( 'email_greeting', 'postal_greeting', 'addressee' ) as $val ) {
+                    if ( CRM_Utils_Array::value( $val, $contactDetails[$contactID] ) ) {
+                        $contactDetails[$contactID][$val] = $contactDetails[$contactID]["{$val}_display"];
+                    }
+                }
+            }
+        }
+
+        // also call a hook and get token details
+        require_once 'CRM/Utils/Hook.php';
+        CRM_Utils_Hook::tokenValues( $details[0],
+                                     $contactIDs,
+                                     null,
+                                     $tokens,
+                                     $className );
+        return $details; 
+    }
+
+    /**
+     * replace greeting tokens exists in message/subject
+     *     
+     * @access public
+     */
+    function replaceGreetingTokens( &$tokenString, $contactDetails = null, $contactId = null, $className = null ) 
+    {
+        require_once 'CRM/Utils/Token.php';
+
+        if ( !$contactDetails && !$contactId ) {
+            return;    
+        }
+        
+        // check if there are any tokens
+        $greetingTokens = CRM_Utils_Token::getTokens( $tokenString );
+                                        
+        if ( !empty($greetingTokens) ) {
+            // first use the existing contact object for token replacement
+            if ( !empty( $contactDetails ) ) {
+                $tokenString = CRM_Utils_Token::replaceContactTokens( $tokenString, $contactDetails, true , $greetingTokens, true );
+            }
+            
+            // check if there are any unevaluated tokens
+            $greetingTokens = CRM_Utils_Token::getTokens( $tokenString );
+            
+            // $greetingTokens not empty, means there are few tokens which are not evaluated, like custom data etc
+            // so retrieve it from database 
+            if ( !empty( $greetingTokens ) ) {
+                $greetingsReturnProperties = array_flip( CRM_Utils_Array::value( 'contact', $greetingTokens ) );        
+                $greetingsReturnProperties = array_fill_keys( array_keys( $greetingsReturnProperties ), 1 );
+                $contactParams             = array( 'contact_id' => $contactId );
+
+                $greetingDetails           = CRM_Utils_Token::getTokenDetails($contactParams,
+                                                                              $greetingsReturnProperties,
+                                                                              false, false, null,
+                                                                              $greetingTokens,
+                                                                              $className );
+                
+                // again replace tokens
+                $tokenString               = CRM_Utils_Token::replaceContactTokens( $tokenString,
+                                                                                    $greetingDetails,
+                                                                                    true ,
+                                                                                    $greetingTokens);
+            }
+        }
+    }
+
+    static function flattenTokens( &$tokens ) {
+        $flattenTokens = array( );
+
+        foreach ( array( 'html', 'text', 'subject' ) as $prop ) {
+            if ( ! isset( $tokens[$prop] ) ) {
+                continue;
+            }
+            foreach ( $tokens[$prop] as $type => $names ) {
+                if ( ! isset( $flattenTokens[$type] ) ) {
+                    $flattenTokens[$type] = array( );
+                }
+                foreach ( $names as $name ) {
+                    $flattenTokens[$type][$name] = 1;
+                }
+            }
+        }
+
+        return $flattenTokens;
     }
 
     /**

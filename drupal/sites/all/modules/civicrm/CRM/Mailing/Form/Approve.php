@@ -2,7 +2,7 @@
 
  /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.0                                                |
+  | CiviCRM version 4.1                                                |
   +--------------------------------------------------------------------+
   | Copyright CiviCRM LLC (c) 2004-2011                                |
   +--------------------------------------------------------------------+
@@ -78,7 +78,7 @@ class CRM_Mailing_Form_Approve extends CRM_Core_Form
             $this->_approveFormOnly = true;
         }
 
-        $session =& CRM_Core_Session::singleton( );
+        $session = CRM_Core_Session::singleton( );
         $this->_contactID = $session->get( 'userID' );
         
         require_once 'CRM/Mailing/BAO/Mailing.php';

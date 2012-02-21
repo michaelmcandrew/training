@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -306,7 +306,7 @@ class CRM_Core_Payment_Google extends CRM_Core_Payment {
         }
 
         if ( curl_errno( $ch ) ) {
-            $e =& CRM_Core_Error::singleton( );
+            $e = CRM_Core_Error::singleton( );
             $e->push( curl_errno( $ch ),
                       0, null,
                       curl_error( $ch ) );

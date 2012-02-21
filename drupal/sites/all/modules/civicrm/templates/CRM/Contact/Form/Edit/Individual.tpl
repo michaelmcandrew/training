@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.0                                                |
+ | CiviCRM version 4.1                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
@@ -38,7 +38,7 @@ var checkSimilar =  {$checkSimilar};
      }
 
      if (!isNaN(cid) || ! checkSimilar)
-       return;//no dupe check if this is a modif or if checkSimilar is disabled (CIVICRM_CONTACT_AJAX_CHECK_SIMILAR in civicrm_setting)
+       return;//no dupe check if this is a modif or if checkSimilar is disabled (contact_ajax_check_similar in civicrm_setting table)
 
 	     cj('#last_name').blur(function () {
          cj('#lastname_msg').remove();
@@ -117,9 +117,9 @@ var checkSimilar =  {$checkSimilar};
             {$form.nick_name.html|crmReplace:class:big}
         </td>
         <td>
-            {if $buildContactSubType}&nbsp;
-               {$form.contact_sub_type.label}<br />
-               {$form.contact_sub_type.html}
+            {if $buildContactSubType}
+              {$form.contact_sub_type.label}<br />
+              {$form.contact_sub_type.html}
             {/if}
         </td>
     </tr>
